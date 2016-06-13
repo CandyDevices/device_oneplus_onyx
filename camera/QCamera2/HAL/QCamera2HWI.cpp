@@ -2446,6 +2446,7 @@ int QCamera2HardwareInterface::stopRecording()
     int rc = stopChannel(QCAMERA_CH_TYPE_VIDEO);
     m_cbNotifier.flushVideoNotifications();
 
+    m_cbNotifier.flushVideoNotifications();
 #ifdef HAS_MULTIMEDIA_HINTS
     if (m_pPowerModule) {
         if (m_pPowerModule->powerHint) {
