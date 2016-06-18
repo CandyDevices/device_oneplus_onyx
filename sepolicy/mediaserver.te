@@ -11,3 +11,6 @@ allow mediaserver system_server:unix_stream_socket { read write };
 allow mediaserver audio_device:chr_file { ioctl open read write };
 
 binder_call(mediaserver, audiod)
+
+# For restarting qcamerasvr at the camera HAL's discretion
+allow mediaserver { system_prop camera_prop }:property_service set;
