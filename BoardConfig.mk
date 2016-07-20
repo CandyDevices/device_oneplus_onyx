@@ -168,13 +168,16 @@ TARGET_NO_RPC := true
 #RECOVERY_VARIANT := twrp
 TW_THEME := portrait_hdpi
 BOARD_SUPPRESS_SECURE_ERASE := true
+BOARD_SUPPRESS_EMMC_WIPE := true
 RECOVERY_SDCARD_ON_DATA := true
 TARGET_RECOVERY_PIXEL_FORMAT := "ABGR_8888"
 TW_BRIGHTNESS_PATH := "/sys/class/leds/lcd-backlight/brightness"
 TW_EXTRA_LANGUAGES := true
 TW_INCLUDE_CRYPTO := true
 TW_NO_USB_STORAGE := true
+TW_UNMOUNT_FIRMWARE_ON_BOOT := true
 TW_TARGET_USES_QCOM_BSP := true
+TWHAVE_SELINUX := true
 
 #MultiROM config. MultiROM also uses parts of TWRP config
 TARGET_RECOVERY_IS_MULTIROM := true

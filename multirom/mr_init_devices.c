@@ -9,6 +9,8 @@ const char *mr_init_devices[] =
 {
 	"/sys/class/graphics/fb0",
 	"/sys/class/graphics/fb1",
+	"/sys/devices/virtual/graphics/fb0",
+	"/sys/devices/virtual/graphics/fb1",
 	
 	"/sys/block/mmcblk0*",
 	"/sys/block/mmcblk0/mmcblk0*",
@@ -23,18 +25,18 @@ const char *mr_init_devices[] =
 	"/sys/block/mmcblk0/mmcblk0p10", //efs1
 	"/sys/block/mmcblk0/mmcblk0p11", //efs2
 
-        "/sys/bus*",
-        "/sys/devices*",
+	"/sys/bus*",
+	"/sys/devices*",
 	"/sys/bus/mmc*",
 	"/sys/bus/mmc/drivers/mmcblk*",
 	"/sys/module/mmc_core",
 	"/sys/module/mmcblk",
 
-        // looks like storage to me
+	// looks like storage to me
 	"/sys/devices/msm_sdcc.1/mmc_host*",
 	"/sys/devices/msm_sdcc.2/mmc_host*",
 
-        // input	
+	// input	
 	"/sys/devices/gpio_keys.85/input*",
 	"/sys/devices/gpio_keys.85/input/input2",
 	"/sys/devices/virtual/input*",
@@ -42,7 +44,7 @@ const char *mr_init_devices[] =
 	
 	// USB drive
 	"/sys/module/xhci-hcd*",
-        "/sys/bus/platform/drivers/xhci-hcd*",
+	"/sys/bus/platform/drivers/xhci-hcd*",
 	
 	// for adb
 	"/sys/devices/virtual/tty/ptmx",
