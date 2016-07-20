@@ -37,13 +37,6 @@ TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_CPU_VARIANT := krait
 
-# Uber Optimizations
-CLANG_O3 := true
-STRICT_ALIASING := false
-KRAIT_TUNINGS := true
-GRAPHITE_OPTS := false
-ENABLE_GCCONLY := false
-
 # Kernel Toolchain
 KERNEL_TOOLCHAIN := $(ANDROID_BUILD_TOP)/prebuilts/gcc/$(HOST_OS)-x86/arm/arm-eabi-4.9-uber/bin
 KERNEL_TOOLCHAIN_PREFIX := arm-eabi-
@@ -173,16 +166,18 @@ BOARD_RIL_CLASS += ../../../device/oneplus/onyx/ril
 # RPC
 TARGET_NO_RPC := true
 
-# TWRP Recovery -- uncomment to build
-#BOARD_SUPPRESS_SECURE_ERASE := true
-#DEVICE_RESOLUTION := 1080x1920
-#RECOVERY_SDCARD_ON_DATA := true
+# TWRP Recovery
 #RECOVERY_VARIANT := twrp
-#TARGET_RECOVERY_PIXEL_FORMAT := "RGB_565"
-#TW_EXTRA_LANGUAGES := true
-#TW_INCLUDE_CRYPTO := true
-#TW_NO_USB_STORAGE := true
-#TW_TARGET_USES_QCOM_BSP := true
+TW_THEME := portrait_hdpi
+BOARD_SUPPRESS_SECURE_ERASE := true
+DEVICE_RESOLUTION := 1080x1920
+RECOVERY_SDCARD_ON_DATA := true
+TARGET_RECOVERY_PIXEL_FORMAT := "RGB_565"
+TW_BRIGHTNESS_PATH := "/sys/class/leds/lcd-backlight/brightness"
+TW_EXTRA_LANGUAGES := true
+TW_INCLUDE_CRYPTO := true
+TW_NO_USB_STORAGE := true
+TW_TARGET_USES_QCOM_BSP := true
 
 # SELinux
 include device/qcom/sepolicy/sepolicy.mk
@@ -208,6 +203,6 @@ WPA_SUPPLICANT_VERSION := VER_0_8_X
 TARGET_LDPRELOAD := libNimsWrap.so
 
 # To be removed
-BLOCK_BASED_OTA := false
+#BLOCK_BASED_OTA := false
 
 -include vendor/oneplus/onyx/BoardConfigVendor.mk
