@@ -1,5 +1,19 @@
-#ifndef _UAPI_MSM_MDP_H_
-#define _UAPI_MSM_MDP_H_
+/* include/linux/msm_mdp.h
+ *
+ * Copyright (C) 2007 Google Incorporated
+ * Copyright (c) 2012-2014 The Linux Foundation. All rights reserved.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+#ifndef _MSM_MDP_H_
+#define _MSM_MDP_H_
 
 #include <linux/types.h>
 #include <linux/fb.h>
@@ -67,8 +81,7 @@
 #define MSMFB_ASYNC_BLIT              _IOW(MSMFB_IOCTL_MAGIC, 168, unsigned int)
 #define MSMFB_OVERLAY_PREPARE		_IOWR(MSMFB_IOCTL_MAGIC, 169, \
 						struct mdp_overlay_list)
-#define MSMFB_LPM_ENABLE	_IOWR(MSMFB_IOCTL_MAGIC, 170, unsigned int)
-
+#define MSMFB_LPM_ENABLE        _IOWR(MSMFB_IOCTL_MAGIC, 170, unsigned int)
 #define FB_TYPE_3D_PANEL 0x10101010
 #define MDP_IMGTYPE2_START 0x10000
 #define MSMFB_DRIVER_VERSION	0xF9E8D701
@@ -95,12 +108,6 @@
 #define MDSS_MDP_HW_REV_102_1	MDSS_MDP_REV(1, 2, 1) /* 8974 v3.0 (Pro) */
 #define MDSS_MDP_HW_REV_103	MDSS_MDP_REV(1, 3, 0) /* 8084 v1.0 */
 #define MDSS_MDP_HW_REV_103_1	MDSS_MDP_REV(1, 3, 1) /* 8084 v1.1 */
-#define MDSS_MDP_HW_REV_105	MDSS_MDP_REV(1, 5, 0) /* 8994 v1.0 */
-#define MDSS_MDP_HW_REV_106	MDSS_MDP_REV(1, 6, 0) /* 8916 v1.0 */
-#define MDSS_MDP_HW_REV_107	MDSS_MDP_REV(1, 7, 0)
-#define MDSS_MDP_HW_REV_108	MDSS_MDP_REV(1, 8, 0) /* 8939 v1.0 */
-#define MDSS_MDP_HW_REV_109	MDSS_MDP_REV(1, 9, 0) /* 8994 v2.0 */
-#define MDSS_MDP_HW_REV_110	MDSS_MDP_REV(1, 10, 0) /* 8992 v1.0 */
 #define MDSS_MDP_HW_REV_200	MDSS_MDP_REV(2, 0, 0) /* 8092 v1.0 */
 
 enum {
@@ -116,7 +123,6 @@ enum {
 	NOTIFY_TYPE_SUSPEND,
 	NOTIFY_TYPE_UPDATE,
 	NOTIFY_TYPE_BL_UPDATE,
-	NOTIFY_TYPE_BL_AD_ATTEN_UPDATE,
 };
 
 enum {
@@ -149,24 +155,15 @@ enum {
 	MDP_BGR_888,      /* BGR 888 */
 	MDP_Y_CBCR_H2V2_VENUS,
 	MDP_BGRX_8888,   /* BGRX 8888 */
-	MDP_RGBA_8888_TILE,	  /* RGBA 8888 in tile format */
-	MDP_ARGB_8888_TILE,	  /* ARGB 8888 in tile format */
-	MDP_ABGR_8888_TILE,	  /* ABGR 8888 in tile format */
-	MDP_BGRA_8888_TILE,	  /* BGRA 8888 in tile format */
-	MDP_RGBX_8888_TILE,	  /* RGBX 8888 in tile format */
-	MDP_XRGB_8888_TILE,	  /* XRGB 8888 in tile format */
-	MDP_XBGR_8888_TILE,	  /* XBGR 8888 in tile format */
-	MDP_BGRX_8888_TILE,	  /* BGRX 8888 in tile format */
+	MDP_RGBA_8888_TILE,	/* RGBA 8888 in tile format */
+	MDP_ARGB_8888_TILE,	/* ARGB 8888 in tile format */
+	MDP_ABGR_8888_TILE,	/* ABGR 8888 in tile format */
+	MDP_BGRA_8888_TILE,	/* BGRA 8888 in tile format */
+	MDP_RGBX_8888_TILE,	/* RGBX 8888 in tile format */
+	MDP_XRGB_8888_TILE,	/* XRGB 8888 in tile format */
+	MDP_XBGR_8888_TILE,	/* XBGR 8888 in tile format */
+	MDP_BGRX_8888_TILE,	/* BGRX 8888 in tile format */
 	MDP_YCBYCR_H2V1,  /* YCbYCr interleave */
-	MDP_RGB_565_TILE,	  /* RGB 565 in tile format */
-	MDP_BGR_565_TILE,	  /* BGR 565 in tile format */
-	MDP_ARGB_1555,	/*ARGB 1555*/
-	MDP_RGBA_5551,	/*RGBA 5551*/
-	MDP_ARGB_4444,	/*ARGB 4444*/
-	MDP_RGBA_4444,	/*RGBA 4444*/
-	MDP_RGB_565_UBWC,
-	MDP_RGBA_8888_UBWC,
-	MDP_Y_CBCR_H2V2_UBWC,
 	MDP_IMGTYPE_LIMIT,
 	MDP_RGB_BORDERFILL,	/* border fill pipe */
 	MDP_FB_FORMAT = MDP_IMGTYPE2_START,    /* framebuffer format */
@@ -202,7 +199,6 @@ enum {
 #define MDP_BLEND_FG_PREMULT 0x20000
 #define MDP_IS_FG 0x40000
 #define MDP_SOLID_FILL 0x00000020
-#define MDP_VPU_PIPE 0x00000040
 #define MDP_DEINTERLACE 0x80000000
 #define MDP_SHARPENING  0x40000000
 #define MDP_NO_DMA_BARRIER_START	0x20000000
@@ -227,15 +223,9 @@ enum {
 #define MDP_MEMORY_ID_TYPE_FB		0x00001000
 #define MDP_BWC_EN			0x00000400
 #define MDP_DECIMATION_EN		0x00000800
-#define MDP_SMP_FORCE_ALLOC		0x00200000
+#define MDP_SMP_FORCE_ALLOC            0x00200000
 #define MDP_TRANSP_NOP 0xffffffff
 #define MDP_ALPHA_NOP 0xff
-
-/*
- * MDP_DEINTERLACE & MDP_SHARPENING Flags are not valid for MDP3
- * so using them together for MDP_SMART_BLIT.
- */
-#define MDP_SMART_BLIT			0xC0000000
 
 #define MDP_FB_PAGE_PROTECTION_NONCACHED         (0)
 #define MDP_FB_PAGE_PROTECTION_WRITECOMBINE      (1)
@@ -313,7 +303,6 @@ struct mdp_blit_req {
 	uint32_t flags;
 	int sharpening_strength;  /* -127 <--> 127, default 64 */
 	uint8_t color_space;
-	uint32_t fps;
 };
 
 struct mdp_blit_req_list {
@@ -578,16 +567,14 @@ struct mdp_scale_data {
  * @PIPE_TYPE_VIG:     VIG pipe.
  * @PIPE_TYPE_RGB:     RGB pipe.
  * @PIPE_TYPE_DMA:     DMA pipe.
- * @PIPE_TYPE_CURSOR:  CURSOR pipe.
  * @PIPE_TYPE_MAX:     Used to track maximum number of pipe type.
  */
 enum mdp_overlay_pipe_type {
-	PIPE_TYPE_AUTO = 0,
-	PIPE_TYPE_VIG,
-	PIPE_TYPE_RGB,
-	PIPE_TYPE_DMA,
-	PIPE_TYPE_CURSOR,
-	PIPE_TYPE_MAX,
+        PIPE_TYPE_AUTO = 0,
+        PIPE_TYPE_VIG,
+        PIPE_TYPE_RGB,
+        PIPE_TYPE_DMA,
+        PIPE_TYPE_MAX,
 };
 
 /**
@@ -634,11 +621,6 @@ enum mdp_overlay_pipe_type {
  *		4: decimation by 16 (drop 15 lines for each line fetched)
  * @overlay_pp_cfg: Overlay post processing configuration, for more information
  *		see struct mdp_overlay_pp_params.
- * @priority:	Priority is returned by the driver when overlay is set for the
- *		first time. It indicates the priority of the underlying pipe
- *		serving the overlay. This priority can be used by user-space
- *		in source split when pipes are re-used and shuffled around to
- *		reduce fallbacks.
  */
 struct mdp_overlay {
 	struct msmfb_img src;
@@ -652,7 +634,6 @@ struct mdp_overlay {
 	uint32_t flags;
 	uint32_t pipe_type;
 	uint32_t id;
-	uint8_t priority;
 	uint32_t user_data[6];
 	uint32_t bg_color;
 	uint8_t horz_deci;
@@ -687,7 +668,7 @@ struct mdp_histogram {
 
 #define MISR_CRC_BATCH_SIZE 32
 enum {
-	DISPLAY_MISR_EDP,
+	DISPLAY_MISR_EDP = 0,
 	DISPLAY_MISR_DSI0,
 	DISPLAY_MISR_DSI1,
 	DISPLAY_MISR_HDMI,
@@ -699,7 +680,7 @@ enum {
 };
 
 enum {
-	MISR_OP_NONE,
+	MISR_OP_NONE = 0,
 	MISR_OP_SFM,
 	MISR_OP_MFM,
 	MISR_OP_BM,
@@ -786,7 +767,6 @@ enum {
 	mdp_lut_igc,
 	mdp_lut_pgc,
 	mdp_lut_hist,
-	mdp_lut_rgb,
 	mdp_lut_max,
 };
 
@@ -807,20 +787,6 @@ struct mdp_pgc_lut_data {
 	struct mdp_ar_gc_lut_data *b_data;
 };
 
-/*
- * mdp_rgb_lut_data is used to provide parameters for configuring the
- * generic RGB lut in case of gamma correction or other LUT updation usecases
- */
-struct mdp_rgb_lut_data {
-	uint32_t flags;
-	uint32_t lut_type;
-	struct fb_cmap cmap;
-};
-
-enum {
-	mdp_rgb_lut_gc,
-	mdp_rgb_lut_hist,
-};
 
 struct mdp_lut_cfg_data {
 	uint32_t lut_type;
@@ -828,7 +794,6 @@ struct mdp_lut_cfg_data {
 		struct mdp_igc_lut_data igc_lut_data;
 		struct mdp_pgc_lut_data pgc_lut_data;
 		struct mdp_hist_lut_data hist_lut_data;
-		struct mdp_rgb_lut_data rgb_lut_data;
 	} data;
 };
 
@@ -1040,7 +1005,6 @@ enum {
 	metadata_op_wb_secure,
 	metadata_op_get_caps,
 	metadata_op_crc,
-	metadata_op_get_ion_fd,
 	metadata_op_max
 };
 
@@ -1074,7 +1038,6 @@ struct msmfb_metadata {
 		uint32_t video_info_code;
 		struct mdss_hw_caps caps;
 		uint8_t secure_en;
-		int fbmem_ionfd;
 	} data;
 };
 
@@ -1103,21 +1066,20 @@ struct mdp_display_commit {
 	uint32_t flags;
 	uint32_t wait_for_finish;
 	struct fb_var_screeninfo var;
-	struct mdp_rect l_roi;
-	struct mdp_rect r_roi;
+	struct mdp_rect roi;
 };
 
 /**
- * struct mdp_overlay_list - argument for ioctl MSMFB_OVERLAY_PREPARE
- * @num_overlays:	Number of overlay layers as part of the frame.
- * @overlay_list:	Pointer to a list of overlay structures identifying
- *			the layers as part of the frame
- * @flags:		Flags can be used to extend behavior.
- * @processed_overlays:	Output parameter indicating how many pipes were
- *			successful. If there are no errors this number should
- *			match num_overlays. Otherwise it will indicate the last
- *			successful index for overlay that couldn't be set.
- */
+* struct mdp_overlay_list - argument for ioctl MSMFB_OVERLAY_PREPARE
+* @num_overlays:	Number of overlay layers as part of the frame.
+* @overlay_list:	Pointer to a list of overlay structures identifying
+*			the layers as part of the frame
+* @flags:		Flags can be used to extend behavior.
+* @processed_overlays:	Output parameter indicating how many pipes were
+*			successful. If there are no errors this number should
+*			match num_overlays. Otherwise it will indicate the last
+*			successful index for overlay that couldn't be set.
+*/
 struct mdp_overlay_list {
 	uint32_t num_overlays;
 	struct mdp_overlay **overlay_list;
@@ -1138,7 +1100,7 @@ struct mdp_mixer_info {
 	int z_order;
 };
 
-#define MAX_PIPE_PER_MIXER  7
+#define MAX_PIPE_PER_MIXER  4
 
 struct msmfb_mixer_info_req {
 	int mixer_num;
@@ -1168,4 +1130,23 @@ enum {
 	MDP_CSC_ITU_R_601_FR,
 	MDP_CSC_ITU_R_709,
 };
-#endif /*_UAPI_MSM_MDP_H_*/ 
+
+#ifdef __KERNEL__
+int msm_fb_get_iommu_domain(struct fb_info *info, int domain);
+/* get the framebuffer physical address information */
+int get_fb_phys_info(unsigned long *start, unsigned long *len, int fb_num,
+	int subsys_id);
+struct fb_info *msm_fb_get_writeback_fb(void);
+int msm_fb_writeback_init(struct fb_info *info);
+int msm_fb_writeback_start(struct fb_info *info);
+int msm_fb_writeback_queue_buffer(struct fb_info *info,
+		struct msmfb_data *data);
+int msm_fb_writeback_dequeue_buffer(struct fb_info *info,
+		struct msmfb_data *data);
+int msm_fb_writeback_stop(struct fb_info *info);
+int msm_fb_writeback_terminate(struct fb_info *info);
+int msm_fb_writeback_set_secure(struct fb_info *info, int enable);
+int msm_fb_writeback_iommu_ref(struct fb_info *info, int enable);
+#endif
+
+#endif /*_MSM_MDP_H_*/
