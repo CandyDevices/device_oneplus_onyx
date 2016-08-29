@@ -664,7 +664,6 @@ private:
     cam_frame_idx_range_t mPreviewFrameSkipIdxRange;
     uint64_t mVideoFrameCnt;
     uint64_t mCameraFrameCnt;
-    QCameraVideoMemory *mVideoMem;
 };
 
 }; // namespace qcamera
