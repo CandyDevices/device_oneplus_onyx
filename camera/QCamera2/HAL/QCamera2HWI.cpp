@@ -1092,6 +1092,8 @@ QCamera2HardwareInterface::QCamera2HardwareInterface(int cameraId)
       mMetadataJob(-1),
       mReprocJob(-1),
       mRawdataJob(-1),
+      mInputCount(0),
+      mAdvancedCaptureConfigured(false),
       mPreviewFrameSkipValid(0),
       mVideoFrameCnt(0),
       mCameraFrameCnt(0),
@@ -1178,6 +1180,13 @@ int QCamera2HardwareInterface::openCamera(struct hw_device_t **hw_device)
         *hw_device = NULL;
         return PERMISSION_DENIED;
     }
+
+    if(have_camera_opened()){
+        *hw_device = NULL;
+        ALOGW("another camera already opened");
+        return -EUSERS;
+    }
+
     CDBG_HIGH("[KPI Perf] %s: E PROFILE_OPEN_CAMERA camera id %d", __func__,mCameraId);
     rc = openCamera();
     if (rc == NO_ERROR){
@@ -1356,6 +1365,8 @@ int QCamera2HardwareInterface::closeCamera()
         return NO_ERROR;
     }
 
+  {
+
     pthread_mutex_lock(&m_parm_lock);
 
     // set open flag to false
@@ -1365,9 +1376,6 @@ int QCamera2HardwareInterface::closeCamera()
     mParameters.deinit();
 
     pthread_mutex_unlock(&m_parm_lock);
-
-    // exit notifier
-    m_cbNotifier.exit();
 
     // stop and deinit postprocessor
     m_postprocessor.stop();
@@ -1397,6 +1405,9 @@ int QCamera2HardwareInterface::closeCamera()
 
     rc = mCameraHandle->ops->close_camera(mCameraHandle->camera_handle);
     mCameraHandle = NULL;
+  }
+
+
     CDBG_HIGH("%s: X", __func__);
     return rc;
 }
@@ -1415,6 +1426,7 @@ int QCamera2HardwareInterface::closeCamera()
  *              NO_ERROR  -- success
  *              none-zero failure code
  *==========================================================================*/
+
 int QCamera2HardwareInterface::initCapabilities(int cameraId,mm_camera_vtbl_t *cameraHandle)
 {
     int rc = NO_ERROR;
@@ -2595,7 +2607,39 @@ bool QCamera2HardwareInterface::processUFDumps(qcamera_jpeg_evt_payload_t *evt)
    }
    return ret;
 }
+/*===========================================================================
+ * FUNCTION   : unconfigureAdvancedCapture
+ *
+ * DESCRIPTION: unconfigure Advanced Capture.
+ *
+ * PARAMETERS : none
+ *
+ * RETURN     : int32_t type of status
+ *              NO_ERROR  -- success
+ *              none-zero failure code
+ *==========================================================================*/
+int32_t QCamera2HardwareInterface::unconfigureAdvancedCapture()
+{
+    int32_t rc = NO_ERROR;
 
+    if (mAdvancedCaptureConfigured) {
+
+        mAdvancedCaptureConfigured = false;
+
+        if(mIs3ALocked) {
+            mParameters.set3ALock(QCameraParameters::VALUE_FALSE);
+            mIs3ALocked = false;
+        }
+        if (mParameters.isHDREnabled() || mParameters.isAEBracketEnabled()) {
+            rc = mParameters.stopAEBracket();
+        } else {
+            ALOGE("%s: No Advanced Capture feature enabled!! ", __func__);
+            rc = BAD_VALUE;
+        }
+    }
+
+    return rc;
+}
 /*===========================================================================
  * FUNCTION   : configureAdvancedCapture
  *
@@ -2613,6 +2657,7 @@ int32_t QCamera2HardwareInterface::configureAdvancedCapture()
     int32_t rc = NO_ERROR;
 
     setOutputImageCount(0);
+    mInputCount = 0;
     mParameters.setDisplayFrame(FALSE);
     if (mParameters.isUbiFocusEnabled()) {
         rc = configureAFBracketing();
@@ -2629,6 +2674,11 @@ int32_t QCamera2HardwareInterface::configureAdvancedCapture()
     } else {
         ALOGE("%s: No Advanced Capture feature enabled!! ", __func__);
         rc = BAD_VALUE;
+    }
+    if (NO_ERROR == rc) {
+        mAdvancedCaptureConfigured = true;
+    } else {
+        mAdvancedCaptureConfigured = false;
     }
     CDBG_HIGH("%s: X",__func__);
     return rc;
@@ -3176,6 +3226,21 @@ int QCamera2HardwareInterface::cancelPicture()
  *==========================================================================*/
 void QCamera2HardwareInterface::captureDone()
 {
+    qcamera_sm_internal_evt_payload_t *payload =
+       (qcamera_sm_internal_evt_payload_t *)
+       malloc(sizeof(qcamera_sm_internal_evt_payload_t));
+    if (NULL != payload) {
+        memset(payload, 0, sizeof(qcamera_sm_internal_evt_payload_t));
+        payload->evt_type = QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE;
+        int32_t rc = processEvt(QCAMERA_SM_EVT_EVT_INTERNAL, payload);
+        if (rc != NO_ERROR) {
+            ALOGE("%s: processEvt ZSL capture done failed", __func__);
+            free(payload);
+            payload = NULL;
+        }
+    } else {
+        ALOGE("%s: No memory for ZSL capture done event", __func__);
+    }
     if (mParameters.isOptiZoomEnabled() &&
         ++mOutputCount >= mParameters.getBurstCountForAdvancedCapture()) {
         ALOGE("%s: Restoring previous zoom value!!",__func__);
@@ -4054,7 +4119,29 @@ int32_t QCamera2HardwareInterface::processZoomEvent(cam_crop_data_t &crop_info)
     }
     return ret;
 }
+/*===========================================================================
+ * FUNCTION   : processZSLCaptureDone
+ *
+ * DESCRIPTION: process ZSL capture done events
+ *
+ * PARAMETERS : None
+ *
+ * RETURN     : int32_t type of status
+ *              NO_ERROR  -- success
+ *              none-zero failure code
+ *==========================================================================*/
+int32_t QCamera2HardwareInterface::processZSLCaptureDone()
+{
+    int rc = NO_ERROR;
 
+    pthread_mutex_lock(&m_parm_lock);
+    if (++mInputCount >= mParameters.getBurstCountForAdvancedCapture()) {
+        rc = unconfigureAdvancedCapture();
+    }
+    pthread_mutex_unlock(&m_parm_lock);
+
+    return rc;
+}
 /*===========================================================================
  * FUNCTION   : processHDRData
  *

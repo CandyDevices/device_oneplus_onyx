@@ -1250,7 +1250,7 @@ int QCameraVideoMemory::allocate(int count, int size)
         }
         nh->data[0] = mMemInfo[i].fd;
         nh->data[1] = 0;
-        nh->data[2] = (int)mMemInfo[i].size;
+        nh->data[2] = mMemInfo[i].size;
         nh->data[3] = 0;
         nh->data[4] = 0;
     }

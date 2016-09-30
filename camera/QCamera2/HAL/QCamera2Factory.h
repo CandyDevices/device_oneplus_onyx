@@ -46,6 +46,7 @@ public:
 
     static int get_number_of_cameras();
     static int get_camera_info(int camera_id, struct camera_info *info);
+    static int set_torch_mode(const char* camera_id, bool on);
 
 private:
     int getNumberOfCameras();
@@ -55,10 +56,13 @@ private:
                 struct hw_device_t **hw_device);
     bool can_talk_to_sensormanager();
 
+    int setTorchMode(const char* camera_id, bool on);
 public:
     static struct hw_module_methods_t mModuleMethods;
 
 private:
+    int torch0Fd;
+    int torch1Fd;
     int mNumOfCameras;
     android::Mutex gCameraWrapperLock;
 };

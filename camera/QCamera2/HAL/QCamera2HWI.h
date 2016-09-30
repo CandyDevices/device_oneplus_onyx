@@ -130,7 +130,6 @@ typedef struct {
 #define QCAMERA_ION_USE_CACHE   true
 #define QCAMERA_ION_USE_NOCACHE false
 #define MAX_ONGOING_JOBS 25
-#define QCAMERA_MAX_FILEPATH_LENGTH 50
 
 extern volatile uint32_t gCamHalLogLevel;
 
@@ -294,7 +293,9 @@ public:
     friend class QCameraStateMachine;
     friend class QCameraPostProcessor;
     friend class QCameraCbNotifier;
-
+    static void getFlashInfo(const int cameraId,
+            bool& hasFlash,
+            char (&flashNode)[QCAMERA_MAX_FILEPATH_LENGTH]);
 private:
     int setPreviewWindow(struct preview_stream_ops *window);
     int setCallBacks(
@@ -392,6 +393,8 @@ private:
     int32_t processASDUpdate(cam_auto_scene_t scene);
     int32_t processJpegNotify(qcamera_jpeg_evt_payload_t *jpeg_job);
     int32_t processHDRData(cam_asd_hdr_scene_data_t hdr_scene);
+    int32_t processZSLCaptureDone();
+    int32_t processAEInfo(cam_ae_params_t &ae_params);
     int32_t transAwbMetaToParams(cam_awb_params_t &awb_params);
     int32_t processAWBUpdate(cam_awb_params_t &awb_params);
 
@@ -447,6 +450,11 @@ private:
     bool removeSizeFromList(cam_dimension_t* size_list,
                             uint8_t length,
                             cam_dimension_t size);
+    int32_t unconfigureAdvancedCapture();
+    void setLongshotEnable(bool enable) {
+    mLongshotEnabled=enable;
+    mParameters.setLongshotEnable(mLongshotEnabled);
+    };
     int32_t configureAdvancedCapture();
     int32_t configureAFBracketing(bool enable = true);
     int32_t configureFlashBracketing();
@@ -650,6 +658,8 @@ private:
     int32_t mReprocJob;
     int32_t mRawdataJob;
     int32_t mOutputCount;
+    uint32_t mInputCount;
+    bool mAdvancedCaptureConfigured;
     bool mPreviewFrameSkipValid;
     cam_frame_idx_range_t mPreviewFrameSkipIdxRange;
     uint64_t mVideoFrameCnt;

@@ -1039,12 +1039,13 @@ String8 QCameraParameters::createFpsRangeString(const cam_fps_range_t* fps,
     char buffer[32];
     int max_range = 0;
     int min_fps, max_fps;
-
+    float min=FLT_MAX;
     if (len > 0) {
         min_fps = int(fps[0].min_fps * 1000);
         max_fps = int(fps[0].max_fps * 1000);
         max_range = max_fps - min_fps;
         default_fps_index = 0;
+        min = fabs (fps[0].max_fps-30.0);
         snprintf(buffer, sizeof(buffer), "(%d,%d)", min_fps, max_fps);
         str.append(buffer);
     }
@@ -1053,6 +1054,10 @@ String8 QCameraParameters::createFpsRangeString(const cam_fps_range_t* fps,
         max_fps = int(fps[i].max_fps * 1000);
         if (max_range < (max_fps - min_fps)) {
             max_range = max_fps - min_fps;
+        }
+        float diff = fabs (fps[i].max_fps-30);
+        if (min>diff) {
+            min=diff;
             default_fps_index = i;
         }
         snprintf(buffer, sizeof(buffer), ",(%d,%d)", min_fps, max_fps);
@@ -4228,7 +4233,7 @@ int32_t QCameraParameters::initDefaultParameters()
     set(KEY_QC_RAW_PICUTRE_SIZE, raw_size_str);
 
     //set default jpeg quality and thumbnail quality
-    set(KEY_JPEG_QUALITY, 85);
+    set(KEY_JPEG_QUALITY, 98);
     set(KEY_JPEG_THUMBNAIL_QUALITY, 85);
 
     // Set FPS ranges
@@ -6312,6 +6317,7 @@ int32_t QCameraParameters::setMeteringAreas(const char *meteringAreasStr)
                 (uint32_t)(((areas[i].rect.top + areas[i].rect.height / 2) + 1000.0f) * previewHeight / 2000.0f) ;
         }
     } else {
+        ALOGI("%s default metering area", __func__); 
         aec_roi_value.aec_roi_enable = CAM_AEC_ROI_OFF;
     }
     free(areas);
@@ -7838,7 +7844,7 @@ int QCameraParameters::getJpegQuality()
 #if 0
     int quality = getInt(KEY_JPEG_QUALITY);
     if (quality < 0) {
-        quality = 85; // set to default quality value
+        quality = 98; // set to default quality value
     }
     return quality;
 #endif

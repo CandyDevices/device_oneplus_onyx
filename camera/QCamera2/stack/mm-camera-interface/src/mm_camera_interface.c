@@ -1676,6 +1676,19 @@ static mm_camera_ops_t mm_camera_ops = {
     .process_advanced_capture = mm_camera_intf_process_advanced_capture
 };
 
+int have_camera_opened(){
+
+    int rc = 0;
+    int i = 0;
+    for (i = 0; i < g_cam_ctrl.num_cam; i++) {
+        if(NULL != g_cam_ctrl.cam_obj[i] && g_cam_ctrl.cam_obj[i]->ref_count > 0){
+            rc = 1;
+            break;
+        }
+    }
+    return rc;
+}
+
 /*===========================================================================
  * FUNCTION   : camera_open
  *
@@ -1691,6 +1704,7 @@ mm_camera_vtbl_t * camera_open(uint8_t camera_idx)
 {
     int32_t rc = 0;
     mm_camera_obj_t* cam_obj = NULL;
+
 
     CDBG("%s: E camera_idx = %d\n", __func__, camera_idx);
     if (camera_idx >= g_cam_ctrl.num_cam) {

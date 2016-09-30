@@ -95,6 +95,9 @@ void QCamera2HardwareInterface::zsl_channel_cb(mm_camera_super_buf_t *recvd_fram
             recvd_frame->bufs[0]->frame_idx);
     }
 
+//add by likelong@camera 2016.7.11 for advanced capture performance
+
+
     // DUMP RAW if available
     property_get("persist.camera.zsl_raw", value, "0");
     dump_raw = atoi(value) > 0 ? true : false;
