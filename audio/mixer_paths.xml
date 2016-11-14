@@ -958,7 +958,7 @@
         <ctl name="SLIM TX7 MUX" value="DEC2" />
         <ctl name="DEC2 MUX" value="ADC5" />
         <ctl name="ADC5 Volume" value="19" />
-        <ctl name="DEC2 Volume" value="84" />
+        <ctl name="DEC2 Volume" value="98" />
 		<ctl name="SLIM_0_RX Format" value="S16_LE" />
     </path>
 
@@ -968,7 +968,7 @@
         <ctl name="SLIM TX7 MUX" value="DEC4" />
         <ctl name="DEC4 MUX" value="ADC3" />
         <ctl name="ADC3 Volume" value="19" />
-        <ctl name="DEC4 Volume" value="84" />
+        <ctl name="DEC4 Volume" value="94" />
 	<ctl name="SLIM_0_RX Format" value="S16_LE" />
     </path>
 
