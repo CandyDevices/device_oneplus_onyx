@@ -28,3 +28,5 @@
 # Backlight
 /sys/class/leds/lcd-backlight/brightness                u:object_r:touchscreen_file:s0
 
+# Modem
+/dev/subsys_modem                                       u:object_r:subsys_modem_device:s0
