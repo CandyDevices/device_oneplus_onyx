@@ -72,6 +72,9 @@ QCOM_BT_USE_SMD_TTY := true
 # Camera
 USE_DEVICE_SPECIFIC_CAMERA := true
 
+# Enable textrels
+TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
+
 # Charger
 BOARD_CHARGER_DISABLE_INIT_BLANK := true
 
