@@ -90,6 +90,9 @@ persist.data.qmi.adb_logmask=0
 # SdcardFS
 ro.sys.sdcardfs=true
 
+# Qualcomm BT aptXHD
+persist.bt.enableAptXHD=true
+
 # Sensors
 ro.qc.sdk.sensors.gestures=true
 ro.qc.sdk.gestures.camera=false
