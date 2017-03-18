@@ -22,8 +22,8 @@ LOCAL_CLANG_CFLAGS += \
     -Wno-error=unused-variable \
     -Wno-error=sign-compare \
     -Wno-error=unused-parameter \
-    -Wno-error=unused-private-field 
-    
+    -Wno-error=unused-private-field
+
 # Debug logs are disabled
 LOCAL_CFLAGS += -DDISABLE_DEBUG_LOG
 
@@ -64,10 +64,11 @@ LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
 LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/media
 LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
-LOCAL_SHARED_LIBRARIES := libcamera_client liblog libhardware libutils libcutils libdl
+LOCAL_SHARED_LIBRARIES := libcamera_client liblog libhardware libutils libcutils libdl libgui
 LOCAL_SHARED_LIBRARIES += libmmcamera_interface libmmjpeg_interface
 
 LOCAL_MODULE_RELATIVE_PATH    := hw
+
 LOCAL_MODULE := camera.$(TARGET_BOARD_PLATFORM)
 LOCAL_32_BIT_ONLY := true
 LOCAL_MODULE_TAGS := optional
