@@ -47,9 +47,10 @@ ro.bluetooth.alwaysbleon=true
 qcom.bluetooth.soc=smd
 
 # Camera
-persist.camera.cpp.duplication=false
+camera2.portability.force_api=1
 media.stagefright.legacyencoder=true
 media.stagefright.less-secure=true
+media.stagefright.codecremote=false
 
 # GPS
 persist.gps.qc_nlp_in_use=0
@@ -69,15 +70,17 @@ ro.hdmi.enable=true
 persist.speaker.prot.enable=false
 qcom.hw.aac.encoder=true
 ro.opengles.version=196608
-ro.sf.lcd_density=420
+ro.sf.lcd_density=441
 ro.qualcomm.cabl=0
 
 # QC vendor extension
-ro.vendor.extension_library=libqti-perfd-client.so
 drm.service.enabled=true
 
 # QMI
 persist.data.qmi.adb_logmask=0
+
+# SdcardFS
+ro.sys.sdcardfs=true
 
 # Sensors
 ro.qc.sdk.sensors.gestures=true
