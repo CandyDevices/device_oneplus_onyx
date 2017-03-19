@@ -219,7 +219,6 @@ etc/firmware/venus.mbn
 etc/firmware/venus.mdt
 
 # Perf (from ham)
-bin/mpdecision|9d637e787795719ad05758201f201d761f67dfb9
 vendor/lib/libqti-perfd-client.so|560e00d6cd9fd69fa8a47e3cc392d75d943f0dae
 
 # Postprocessing
@@ -290,9 +289,7 @@ vendor/lib/libsensor_thresh.so
 vendor/lib/libsensor_user_cal.so
 
 # Thermal
-vendor/bin/thermal-engine
 vendor/lib/libthermalclient.so
-vendor/lib/libthermalioctl.so
 
 # Time services
 -app/TimeService/TimeService.apk
