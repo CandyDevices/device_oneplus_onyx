@@ -453,6 +453,7 @@ const QCameraParameters::QCameraMap QCameraParameters::FOCUS_MODES_MAP[] = {
     { FOCUS_MODE_EDOF,               CAM_FOCUS_MODE_EDOF },
     { FOCUS_MODE_CONTINUOUS_PICTURE, CAM_FOCUS_MODE_CONTINOUS_PICTURE },
     { FOCUS_MODE_CONTINUOUS_VIDEO,   CAM_FOCUS_MODE_CONTINOUS_VIDEO },
+    { FOCUS_MODE_MANUAL_POSITION,    CAM_FOCUS_MODE_MANUAL},
 };
 
 const QCameraParameters::QCameraMap QCameraParameters::EFFECT_MODES_MAP[] = {
@@ -516,6 +517,7 @@ const QCameraParameters::QCameraMap QCameraParameters::WHITE_BALANCE_MODES_MAP[]
     { WHITE_BALANCE_CLOUDY_DAYLIGHT, CAM_WB_MODE_CLOUDY_DAYLIGHT },
     { WHITE_BALANCE_TWILIGHT,        CAM_WB_MODE_TWILIGHT },
     { WHITE_BALANCE_SHADE,           CAM_WB_MODE_SHADE },
+    { WHITE_BALANCE_MANUAL_CCT,      CAM_WB_MODE_CCT},
 };
 
 const QCameraParameters::QCameraMap QCameraParameters::ANTIBANDING_MODES_MAP[] = {
@@ -533,7 +535,7 @@ const QCameraParameters::QCameraMap QCameraParameters::ISO_MODES_MAP[] = {
     { ISO_400,   CAM_ISO_MODE_400 },
     { ISO_800,   CAM_ISO_MODE_800 },
     { ISO_1600,  CAM_ISO_MODE_1600 },
-    { ISO_3200,  CAM_ISO_MODE_3200 },
+    { ISO_3200,  CAM_ISO_MODE_3200 }
 };
 
 const QCameraParameters::QCameraMap QCameraParameters::HFR_MODES_MAP[] = {
@@ -604,7 +606,6 @@ const QCameraParameters::QCameraMap QCameraParameters::CDS_MODES_MAP[] = {
 
 #define DEFAULT_CAMERA_AREA "(0, 0, 0, 0, 0)"
 #define DATA_PTR(MEM_OBJ,INDEX) MEM_OBJ->getPtr( INDEX )
-#define MIN_PP_BUF_CNT 1
 #define TOTAL_RAM_SIZE_512MB 536870912
 
 
@@ -668,7 +669,12 @@ QCameraParameters::QCameraParameters()
       m_bDisplayFrame(true),
       m_bAeBracketingEnabled(false),
       mFlashValue(CAM_FLASH_MODE_OFF),
-      mFlashDaemonValue(CAM_FLASH_MODE_OFF)
+      mFlashDaemonValue(CAM_FLASH_MODE_OFF),
+      mPrvwExpTimeReal(0.0f),
+      m_bIsManualIso(false),
+      mManualExpTimeUs(0),
+      m_bIs60HzAntibanding(false),
+      m_bAppRecordingHint(false)
 {
     char value[PROPERTY_VALUE_MAX];
     // TODO: may move to parameter instead of sysprop
@@ -749,8 +755,12 @@ QCameraParameters::QCameraParameters(const String8 &params)
     mHfrMode(CAM_HFR_MODE_OFF),
     m_bAeBracketingEnabled(false),
     mFlashValue(CAM_FLASH_MODE_OFF),
-    mFlashDaemonValue(CAM_FLASH_MODE_OFF)
-
+    mFlashDaemonValue(CAM_FLASH_MODE_OFF),
+    mPrvwExpTimeReal(0.0f),
+    m_bIsManualIso(false),
+    mManualExpTimeUs(0),
+    m_bIs60HzAntibanding(false),
+    m_bAppRecordingHint(false)
 {
     memset(&m_LiveSnapshotSize, 0, sizeof(m_LiveSnapshotSize));
     m_pTorch = NULL;
@@ -1025,13 +1035,12 @@ String8 QCameraParameters::createFpsRangeString(const cam_fps_range_t* fps,
     char buffer[32];
     int max_range = 0;
     int min_fps, max_fps;
-    float min=FLT_MAX;
+
     if (len > 0) {
         min_fps = int(fps[0].min_fps * 1000);
         max_fps = int(fps[0].max_fps * 1000);
         max_range = max_fps - min_fps;
         default_fps_index = 0;
-        min = fabs (fps[0].max_fps-30.0);
         snprintf(buffer, sizeof(buffer), "(%d,%d)", min_fps, max_fps);
         str.append(buffer);
     }
@@ -1040,10 +1049,6 @@ String8 QCameraParameters::createFpsRangeString(const cam_fps_range_t* fps,
         max_fps = int(fps[i].max_fps * 1000);
         if (max_range < (max_fps - min_fps)) {
             max_range = max_fps - min_fps;
-        }
-        float diff = fabs (fps[i].max_fps-30);
-        if (min>diff) {
-            min=diff;
             default_fps_index = i;
         }
         snprintf(buffer, sizeof(buffer), ",(%d,%d)", min_fps, max_fps);
@@ -1115,6 +1120,7 @@ int32_t QCameraParameters::setPreviewSize(const QCameraParameters& params)
     int width, height;
     params.getPreviewSize(&width, &height);
     CDBG("Requested preview size %d x %d", width, height);
+
     // Validate the preview size
     for (size_t i = 0; i < m_pCapability->preview_sizes_tbl_cnt; ++i) {
         if (width ==  m_pCapability->preview_sizes_tbl[i].width
@@ -1236,6 +1242,16 @@ int32_t QCameraParameters::setVideoSize(const QCameraParameters& params)
             // set the new value
             CDBG_HIGH("%s: Requested video size %d x %d", __func__, width, height);
             CameraParameters::setVideoSize(width, height);
+
+            if (m_bRecordingHint) {
+                // Set preview size to video size for 4k
+                if ((width * height) >= (3840 * 2160))
+                    CameraParameters::setPreviewSize(width, height);
+                // Don't allow video preview size below 720p to prevent
+                // dead preview stream
+                else if ((width * height) <= (1280 * 720))
+                    CameraParameters::setPreviewSize(1280, 720);
+            }
             return NO_ERROR;
         }
     }
@@ -1718,8 +1734,15 @@ bool QCameraParameters::UpdateHFRFrameRate(const QCameraParameters& params)
     CDBG("%s: Requested params - : minFps = %d, maxFps = %d ",
                 __func__, parm_minfps, parm_maxfps);
 
-    const char *hfrStr = params.get(KEY_QC_VIDEO_HIGH_FRAME_RATE);
+    const char *hfrStr;
     const char *hsrStr = params.get(KEY_QC_VIDEO_HIGH_SPEED_RECORDING);
+
+    // Set HFR for OnePlus Camera app (slow-motion)
+    if (parm_minfps == 120000 && parm_maxfps == 120000) {
+        hfrStr = "120";
+    } else {
+        hfrStr = params.get(KEY_QC_VIDEO_HIGH_FRAME_RATE);
+    }
 
     const char *prev_hfrStr = CameraParameters::get(KEY_QC_VIDEO_HIGH_FRAME_RATE);
     const char *prev_hsrStr = CameraParameters::get(KEY_QC_VIDEO_HIGH_SPEED_RECORDING);
@@ -1734,14 +1757,16 @@ bool QCameraParameters::UpdateHFRFrameRate(const QCameraParameters& params)
     }
 
     // check if HFR is enabled
-    if(hfrStr != NULL && strcmp(hfrStr, "off")){
+    if(hfrStr != NULL &&
+        ((hsrStr != NULL && !strcmp(hsrStr, "off")) || hsrStr == NULL)){
         hfrMode = lookupAttr(HFR_MODES_MAP,
                                sizeof(HFR_MODES_MAP)/sizeof(QCameraMap),
                                hfrStr);
         if(NAME_NOT_FOUND != hfrMode) newHfrMode = hfrMode;
     }
     // check if HSR is enabled
-    else if(hsrStr != NULL && strcmp(hsrStr, "off")){
+    else if(hsrStr != NULL &&
+        ((hfrStr != NULL && !strcmp(hfrStr, "off")) || hfrStr == NULL)){
         hfrMode = lookupAttr(HFR_MODES_MAP,
                                sizeof(HFR_MODES_MAP)/sizeof(QCameraMap),
                                hsrStr);
@@ -1871,6 +1896,7 @@ int32_t QCameraParameters::setFocusMode(const QCameraParameters& params)
     const char *str = params.get(KEY_FOCUS_MODE);
     const char *prev_str = get(KEY_FOCUS_MODE);
 
+#if 0 // Allow frontend to control scene focus mode
     //Find whether scene mode is Auto or not. We should set focus mode set by app
     //only in Auto scene mode.  For other scene modes, Focus mode corresponding to
     //a scene is decided and set in backend. In HAL, it is taken care in setScenePreferences.
@@ -1880,9 +1906,15 @@ int32_t QCameraParameters::setFocusMode(const QCameraParameters& params)
         if (!strcmp(scene_str, SCENE_MODE_AUTO))
             isAutoSceneMode = TRUE;
     }
+#endif
+
     if (str != NULL) {
         if (prev_str == NULL ||
+#if 0 // Allow frontend to control scene focus mode
             (strcmp(str, prev_str) != 0 && isAutoSceneMode)){
+#else
+            (strcmp(str, prev_str) != 0)){
+#endif
                 rc = setFocusMode(str);
         }
     }
@@ -1955,11 +1987,11 @@ int32_t QCameraParameters::setSceneFocusMode(const QCameraParameters& params)
     if(sceneModeSet && m_pCapability->supported_focus_modes_cnt > 0){
         bool isAutoFocusModeSupported = FALSE;
         for(int i=0;i < m_pCapability->supported_focus_modes_cnt; i++){
-             if(CAM_FOCUS_MODE_AUTO == m_pCapability->supported_focus_modes[i])
+             if(CAM_FOCUS_MODE_CONTINOUS_PICTURE == m_pCapability->supported_focus_modes[i])
                 isAutoFocusModeSupported = TRUE;
         }
         if (isAutoFocusModeSupported) {
-            rc = setFocusMode(FOCUS_MODE_AUTO);
+            rc = setFocusMode(FOCUS_MODE_CONTINUOUS_PICTURE);
         } else {
             rc = setFocusMode(FOCUS_MODE_FIXED);
         }
@@ -1986,6 +2018,12 @@ int32_t  QCameraParameters::setFocusPosition(const QCameraParameters& params)
     const char *focus_str = params.get(KEY_FOCUS_MODE);
     CDBG_HIGH("%s, current focus mode: %s", __func__, focus_str);
 
+    if (focus_str != NULL) {
+        if (strcmp(focus_str, FOCUS_MODE_MANUAL_POSITION)) {
+            CDBG("%s, dont set focus pos to back-end!", __func__);
+            return NO_ERROR;
+        }
+    }
     const char *pos = params.get(KEY_QC_MANUAL_FOCUS_POSITION);
     const char *prev_pos = get(KEY_QC_MANUAL_FOCUS_POSITION);
     const char *type = params.get(KEY_QC_MANUAL_FOCUS_POS_TYPE);
@@ -2278,6 +2316,12 @@ int32_t  QCameraParameters::setWBManualCCT(const QCameraParameters& params)
     const char *wb_str = params.get(KEY_WHITE_BALANCE);
     CDBG_HIGH("%s, current wb mode: %s", __func__, wb_str);
 
+    if (wb_str != NULL) {
+        if (strcmp(wb_str, WHITE_BALANCE_MANUAL_CCT)) {
+            CDBG("%s, dont set cct to back-end.", __func__);
+            return NO_ERROR;
+        }
+    }
 
     const char *str = params.get(KEY_QC_WB_MANUAL_CCT);
     const char *prev_str = get(KEY_QC_WB_MANUAL_CCT);
@@ -2581,7 +2625,8 @@ int32_t  QCameraParameters::setExposureTime(const QCameraParameters& params)
     const char *prev_str = get(KEY_QC_EXPOSURE_TIME);
     if (str != NULL) {
         if (prev_str == NULL ||
-            strcmp(str, prev_str) != 0) {
+            strcmp(str, prev_str) != 0 ||
+            (strcmp(str, "0") && mPrvwExpTimeReal)) {
             return setExposureTime(str);
         }
     }
@@ -2823,6 +2868,7 @@ int32_t QCameraParameters::setMCEValue(const QCameraParameters& params)
  *==========================================================================*/
 int32_t QCameraParameters::setDISValue(const QCameraParameters& params)
 {
+#if 0
     const char *str = params.get(KEY_QC_DIS);
     const char *prev_str = get(KEY_QC_DIS);
     if (str != NULL) {
@@ -2831,6 +2877,7 @@ int32_t QCameraParameters::setDISValue(const QCameraParameters& params)
             return setDISValue(str);
         }
     }
+#endif
     return NO_ERROR;
 }
 
@@ -2956,12 +3003,9 @@ int32_t QCameraParameters::setSceneMode(const QCameraParameters& params)
                 m_bHDREnabled = false;
             }
 
-
-            if (
-                (m_bHDREnabled) ||
-                ((prev_str != NULL) && (strcmp(prev_str, SCENE_MODE_HDR) == 0))
-               ) {
-                CDBG_HIGH("%s: scene mode changed between HDR and non-HDR (ZSL), need restart", __func__);
+            if ((m_bHDREnabled) ||
+                ((prev_str != NULL) && (strcmp(prev_str, SCENE_MODE_HDR) == 0))) {
+                CDBG_HIGH("%s: scene mode changed between HDR and non-HDR, need restart", __func__);
 
                 m_bNeedRestart = true;
                 // set if hdr 1x image is needed
@@ -3406,6 +3450,7 @@ int32_t QCameraParameters::setRecordingHint(const QCameraParameters& params)
                                        str);
             if(value != NAME_NOT_FOUND){
                 updateParamEntry(KEY_RECORDING_HINT, str);
+                m_bAppRecordingHint = (value > 0) ? true : false;
                 setRecordingHintValue(value);
                 return NO_ERROR;
             } else {
@@ -3460,8 +3505,19 @@ int32_t QCameraParameters::setNoDisplayMode(const QCameraParameters& params)
  *==========================================================================*/
 int32_t QCameraParameters::setZslMode(const QCameraParameters& params)
 {
-    const char *str_val  = params.get(KEY_QC_ZSL);
+    const char *str_val;
     const char *prev_val  = get(KEY_QC_ZSL);
+
+    // Artifacts appear when disabling ZSL for front cam
+    // Exposure for HDR is wrong when ZSL is disabled
+    // NOTE: Just checking the params for HDR won't work. setSceneMode()
+    // needs to be called before setZslMode(), and then we need to check
+    // m_bHDREnabled.
+    if (m_pCapability->position == CAM_POSITION_FRONT || m_bHDREnabled) {
+        str_val = VALUE_ON;
+    } else {
+        str_val = params.get(KEY_QC_ZSL);
+    }
 
     if (str_val != NULL) {
         if (prev_val == NULL || strcmp(str_val, prev_val) != 0) {
@@ -3801,6 +3857,73 @@ int32_t QCameraParameters::setLongshotParam(const QCameraParameters& params)
 
     return NO_ERROR;
 }
+
+void QCameraParameters::setPrvwExpTime(float expTimeReal)
+{
+    int32_t expTimeUs;
+
+    if (m_bIsManualIso)
+        expTimeReal = 0.0f;
+
+    if (mManualExpTimeUs)
+        expTimeReal = (float)mManualExpTimeUs / 1000000.0f;
+
+    if (mPrvwExpTimeReal == expTimeReal)
+        return;
+
+    mPrvwExpTimeReal = expTimeReal;
+
+    /* Convert exp time to microseconds */
+    expTimeReal *= 1000000.0f;
+
+    /* Cast exp time in microseconds to 32-bit signed int for backend */
+    expTimeUs = (int32_t)expTimeReal;
+
+    AddSetParmEntryToBatch(m_pParamBuf,
+                           CAM_INTF_PARM_EXPOSURE_TIME,
+                           sizeof(expTimeUs),
+                           &expTimeUs);
+
+    commitParameters();
+}
+
+int QCameraParameters::getPrvwExpTime()
+{
+    return mPrvwExpTimeReal;
+}
+
+uint32_t QCameraParameters::getCameraId()
+{
+    if (m_pCapability->position == CAM_POSITION_BACK)
+        return 0;
+    else
+        return 1;
+}
+
+bool QCameraParameters::is60HzAntibanding()
+{
+    return m_bIs60HzAntibanding;
+}
+
+uint32_t QCameraParameters::getHfrMode()
+{
+    switch (mHfrMode) {
+    case CAM_HFR_MODE_60FPS:
+        return 60;
+    case CAM_HFR_MODE_90FPS:
+        return 90;
+    case CAM_HFR_MODE_120FPS:
+        return 120;
+    default:
+        return 0;
+    }
+}
+
+bool QCameraParameters::getAppRecordingHint()
+{
+    return m_bAppRecordingHint || m_bRecordingHint;
+}
+
 /*===========================================================================
  * FUNCTION   : updateParameters
  *
@@ -3820,11 +3943,16 @@ int32_t QCameraParameters::updateParameters(QCameraParameters& params,
     int32_t final_rc = NO_ERROR;
     int32_t rc;
     m_bNeedRestart = false;
+
     if(initBatchUpdate(m_pParamBuf) < 0 ) {
         ALOGE("%s:Failed to initialize group update table",__func__);
         rc = BAD_TYPE;
         goto UPDATE_PARAM_DONE;
     }
+
+    // Set scene mode before ZSL, to enable ZSL when HDR is used
+    if ((rc = setSceneMode(params)))                    final_rc = rc;
+
     if ((rc = setPreviewSize(params)))                  final_rc = rc;
     if ((rc = setVideoSize(params)))                    final_rc = rc;
     if ((rc = setPictureSize(params)))                  final_rc = rc;
@@ -3863,7 +3991,6 @@ int32_t QCameraParameters::updateParameters(QCameraParameters& params,
     if ((rc = setExposureCompensation(params)))         final_rc = rc;
     if ((rc = setWhiteBalance(params)))                 final_rc = rc;
     if ((rc = setWBManualCCT(params)))                  final_rc = rc;
-    if ((rc = setSceneMode(params)))                    final_rc = rc;
     if ((rc = setFocusAreas(params)))                   final_rc = rc;
     if ((rc = setFocusPosition(params)))                final_rc = rc;
     if ((rc = setMeteringAreas(params)))                final_rc = rc;
@@ -3976,8 +4103,7 @@ int32_t QCameraParameters::initDefaultParameters()
         set(KEY_SUPPORTED_PREVIEW_SIZES, previewSizeValues.string());
         CDBG_HIGH("%s: supported preview sizes: %s", __func__, previewSizeValues.string());
         // Set default preview size
-        CameraParameters::setPreviewSize(m_pCapability->preview_sizes_tbl[0].width,
-                                         m_pCapability->preview_sizes_tbl[0].height);
+        CameraParameters::setPreviewSize(1920, 1080);
     } else {
         ALOGE("%s: supported preview sizes cnt is 0 or exceeds max!!!", __func__);
     }
@@ -3990,12 +4116,10 @@ int32_t QCameraParameters::initDefaultParameters()
         set(KEY_SUPPORTED_VIDEO_SIZES, videoSizeValues.string());
         CDBG_HIGH("%s: supported video sizes: %s", __func__, videoSizeValues.string());
         // Set default video size
-        CameraParameters::setVideoSize(m_pCapability->video_sizes_tbl[0].width,
-                                       m_pCapability->video_sizes_tbl[0].height);
+        CameraParameters::setVideoSize(1920, 1080);
 
         //Set preferred Preview size for video
-        String8 vSize = createSizesString(&m_pCapability->video_sizes_tbl[0], 1);
-        set(KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO, vSize.string());
+        set(KEY_PREFERRED_PREVIEW_SIZE_FOR_VIDEO, "1920x1080");
     } else {
         ALOGE("%s: supported video sizes cnt is 0 or exceeds max!!!", __func__);
     }
@@ -4092,7 +4216,7 @@ int32_t QCameraParameters::initDefaultParameters()
     set(KEY_QC_RAW_PICUTRE_SIZE, raw_size_str);
 
     //set default jpeg quality and thumbnail quality
-    set(KEY_JPEG_QUALITY, 98);
+    set(KEY_JPEG_QUALITY, 85);
     set(KEY_JPEG_THUMBNAIL_QUALITY, 85);
 
     // Set FPS ranges
@@ -4114,6 +4238,7 @@ int32_t QCameraParameters::initDefaultParameters()
         setPreviewFpsRange(min_fps, max_fps, min_fps, max_fps);
 
         // Set legacy preview fps
+        default_fps_index = 0;
         String8 fpsValues = createFpsString(m_pCapability->fps_ranges_tbl[default_fps_index]);
         set(KEY_SUPPORTED_PREVIEW_FRAME_RATES, fpsValues.string());
         CDBG_HIGH("%s: supported fps rates: %s", __func__, fpsValues.string());
@@ -4163,15 +4288,15 @@ int32_t QCameraParameters::initDefaultParameters()
     }
 
     // set focus position, we should get them from m_pCapability
-    m_pCapability->min_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX] = 40;
-    m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX] = 60;
+    m_pCapability->min_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX] = 0;
+    m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX] = 1023;
     set(KEY_QC_MIN_FOCUS_POS_INDEX, m_pCapability->min_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX]);
     set(KEY_QC_MAX_FOCUS_POS_INDEX, m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_INDEX]);
 
     m_pCapability->min_focus_pos[CAM_MANUAL_FOCUS_MODE_DAC_CODE] = 0;
     m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_DAC_CODE] = 1023;
     set(KEY_QC_MIN_FOCUS_POS_DAC, m_pCapability->min_focus_pos[CAM_MANUAL_FOCUS_MODE_DAC_CODE]);
-    set(KEY_QC_MIN_FOCUS_POS_DAC, m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_DAC_CODE]);
+    set(KEY_QC_MAX_FOCUS_POS_DAC, m_pCapability->max_focus_pos[CAM_MANUAL_FOCUS_MODE_DAC_CODE]);
 
     // Set Saturation
     set(KEY_QC_MIN_SATURATION, m_pCapability->saturation_ctrl.min_value);
@@ -4225,7 +4350,7 @@ int32_t QCameraParameters::initDefaultParameters()
             ANTIBANDING_MODES_MAP,
             sizeof(ANTIBANDING_MODES_MAP) / sizeof(QCameraMap));
     set(KEY_SUPPORTED_ANTIBANDING, antibandingValues);
-    setAntibanding(ANTIBANDING_OFF);
+    setAntibanding(ANTIBANDING_AUTO);
 
     // Set Effect
     String8 effectValues = createValuesString(
@@ -4283,8 +4408,10 @@ int32_t QCameraParameters::initDefaultParameters()
     setISOValue(ISO_AUTO);
 
     // Set exposure time, we should get them from m_pCapability
-    set(KEY_QC_MIN_EXPOSURE_TIME, m_pCapability->min_exposure_time/1000.0);
-    set(KEY_QC_MAX_EXPOSURE_TIME, m_pCapability->max_exposure_time/1000.0);
+    m_pCapability->min_exposure_time = 100;
+    m_pCapability->max_exposure_time = 16000000;
+    set(KEY_QC_MIN_EXPOSURE_TIME, m_pCapability->min_exposure_time);
+    set(KEY_QC_MAX_EXPOSURE_TIME, m_pCapability->max_exposure_time);
     //setExposureTime("0");
 
     // Set HFR
@@ -4303,13 +4430,15 @@ int32_t QCameraParameters::initDefaultParameters()
     setHighFrameRate(CAM_HFR_MODE_OFF);
 
     // Set Focus algorithms
-    String8 focusAlgoValues = createValuesString(
-            (int *)m_pCapability->supported_focus_algos,
-            m_pCapability->supported_focus_algos_cnt,
-            FOCUS_ALGO_MAP,
-            sizeof(FOCUS_ALGO_MAP) / sizeof(QCameraMap));
-    set(KEY_QC_SUPPORTED_FOCUS_ALGOS, focusAlgoValues);
-    setSelectableZoneAf(FOCUS_ALGO_AUTO);
+    if (m_pCapability->position == CAM_POSITION_BACK) {
+        String8 focusAlgoValues = createValuesString(
+                (int *)m_pCapability->supported_focus_algos,
+                m_pCapability->supported_focus_algos_cnt,
+                FOCUS_ALGO_MAP,
+                sizeof(FOCUS_ALGO_MAP) / sizeof(QCameraMap));
+        set(KEY_QC_SUPPORTED_FOCUS_ALGOS, focusAlgoValues);
+        setSelectableZoneAf(FOCUS_ALGO_AUTO);
+    }
 
     // Set Zoom Ratios
     if (m_pCapability->zoom_supported > 0) {
@@ -4374,7 +4503,6 @@ int32_t QCameraParameters::initDefaultParameters()
     String8 denoiseValues = createValuesStringFromMap(
        DENOISE_ON_OFF_MODES_MAP, sizeof(DENOISE_ON_OFF_MODES_MAP) / sizeof(QCameraMap));
     set(KEY_QC_SUPPORTED_DENOISE, denoiseValues.string());
-#define DEFAULT_DENOISE_MODE_ON
 #ifdef DEFAULT_DENOISE_MODE_ON
     setWaveletDenoise(DENOISE_ON);
 #else
@@ -4395,8 +4523,8 @@ int32_t QCameraParameters::initDefaultParameters()
     setMCEValue(VALUE_ENABLE);
 
     // Set DIS
-    set(KEY_QC_SUPPORTED_DIS_MODES, enableDisableValues);
-    setDISValue(VALUE_DISABLE);
+    //set(KEY_QC_SUPPORTED_DIS_MODES, enableDisableValues);
+    //setDISValue(VALUE_DISABLE);
 
     // Set Histogram
     set(KEY_QC_SUPPORTED_HISTOGRAM_MODES,
@@ -4431,6 +4559,7 @@ int32_t QCameraParameters::initDefaultParameters()
     setSceneDetect(VALUE_OFF);
     m_bHDREnabled = false;
     m_bHDR1xFrameEnabled = true;
+
     m_bHDRThumbnailProcessNeeded = false;
     m_bHDR1xExtraBufferNeeded = true;
     for (uint32_t i=0; i<m_pCapability->hdr_bracketing_setting.num_frames; i++) {
@@ -4457,11 +4586,16 @@ int32_t QCameraParameters::initDefaultParameters()
     //Set Face Recognition
     //set(KEY_QC_SUPPORTED_FACE_RECOGNITION, onOffValues);
     //set(KEY_QC_FACE_RECOGNITION, VALUE_OFF);
-    
+
     //Set ZSL
     set(KEY_QC_SUPPORTED_ZSL_MODES, onOffValues);
+#ifdef DEFAULT_ZSL_MODE_ON
     set(KEY_QC_ZSL, VALUE_ON);
     m_bZslMode = true;
+#else
+    set(KEY_QC_ZSL, VALUE_OFF);
+    m_bZslMode = false;
+#endif
     m_bZslMode_new = m_bZslMode;
 
     //Set video HDR
@@ -4502,6 +4636,7 @@ int32_t QCameraParameters::initDefaultParameters()
 
     // Set default longshot mode
     set(KEY_QC_LONG_SHOT, "off");
+
     //Get RAM size and disable features which are memory rich
     struct sysinfo info;
     sysinfo(&info);
@@ -4796,6 +4931,13 @@ int32_t QCameraParameters::setPreviewFpsRange(int min_fps,
     CDBG("%s: E minFps = %d, maxFps = %d , vid minFps = %d, vid maxFps = %d",
                 __func__, min_fps, max_fps, vid_min_fps, vid_max_fps);
 
+    /* Cap preview frame rate to 30 FPS */
+    if (max_fps > 30000) {
+        max_fps = 30000;
+        if (min_fps > 30000)
+            min_fps = 30000;
+    }
+
     if(fixedFpsValue != 0) {
       min_fps = (int)fixedFpsValue*1000;
       max_fps = (int)fixedFpsValue*1000;
@@ -5046,6 +5188,9 @@ int32_t QCameraParameters::setSharpness(int sharpness)
     CDBG("%s: Setting sharpness %s", __func__, val);
 
     int32_t value = sharpness;
+    if (value > MAX_REAL_SHARPNESS)
+        value = MAX_REAL_SHARPNESS;
+
     return AddSetParmEntryToBatch(m_pParamBuf,
                                   CAM_INTF_PARM_SHARPNESS,
                                   sizeof(value),
@@ -5335,8 +5480,15 @@ int32_t  QCameraParameters::setISOValue(const char *isoValue)
         int32_t value = lookupAttr(ISO_MODES_MAP,
                                    sizeof(ISO_MODES_MAP)/sizeof(QCameraMap),
                                    isoValue);
+
+        if (value != CAM_ISO_MODE_AUTO) {
+            m_bIsManualIso = true;
+        } else {
+            m_bIsManualIso = false;
+        }
+
         if (value != NAME_NOT_FOUND) {
-            CDBG_HIGH("%s: Setting ISO value %s", __func__, isoValue);
+            CDBG("%s: Setting ISO value %s", __func__, isoValue);
             updateParamEntry(KEY_QC_ISO_MODE, isoValue);
             return AddSetParmEntryToBatch(m_pParamBuf,
                                           CAM_INTF_PARM_ISO,
@@ -5367,6 +5519,17 @@ int32_t  QCameraParameters::setExposureTime(const char *expTimeStr)
         int32_t expTimeUs = atoi(expTimeStr);
         int32_t min_exp_time = m_pCapability->min_exposure_time; /* 200 */
         int32_t max_exp_time = m_pCapability->max_exposure_time; /* 2000000 */
+
+        // Cap exposure time to upper/lower limits without returning an error
+        // to prevent crashes in CameraNext
+        if (expTimeUs) {
+            if (expTimeUs > max_exp_time)
+                expTimeUs = max_exp_time;
+            else if (expTimeUs < min_exp_time)
+                expTimeUs = min_exp_time;
+        }
+
+        mManualExpTimeUs = expTimeUs;
 
         // expTime == 0 means not to use manual exposure time.
         if (expTimeUs == 0 ||
@@ -5400,7 +5563,8 @@ int32_t QCameraParameters::getFlashValue()
 {
   const char *flash_str = get(QCameraParameters::KEY_FLASH_MODE);
   int flash_index = lookupAttr(FLASH_MODES_MAP,
-       sizeof(ISO_MODES_MAP)/sizeof(FLASH_MODES_MAP[0]), flash_str);
+        sizeof(ISO_MODES_MAP)/sizeof(FLASH_MODES_MAP[0]), flash_str);
+
   return flash_index;
 }
 
@@ -5927,7 +6091,6 @@ int32_t QCameraParameters::updateCCTValue(int32_t cct)
     return NO_ERROR;
 }
 
-
 int QCameraParameters::getAutoFlickerMode()
 {
     /* Enable Advanced Auto Antibanding where we can set
@@ -5966,6 +6129,12 @@ int32_t QCameraParameters::setAntibanding(const char *antiBandingStr)
             if(value == CAM_ANTIBANDING_MODE_AUTO) {
                value = getAutoFlickerMode();
             }
+
+            if (value == CAM_ANTIBANDING_MODE_60HZ)
+                m_bIs60HzAntibanding = true;
+            else
+                m_bIs60HzAntibanding = false;
+
             return AddSetParmEntryToBatch(m_pParamBuf,
                                           CAM_INTF_PARM_ANTIBANDING,
                                           sizeof(value),
@@ -6131,7 +6300,6 @@ int32_t QCameraParameters::setMeteringAreas(const char *meteringAreasStr)
                 (uint32_t)(((areas[i].rect.top + areas[i].rect.height / 2) + 1000.0f) * previewHeight / 2000.0f) ;
         }
     } else {
-        ALOGI("%s default metering area", __func__); 
         aec_roi_value.aec_roi_enable = CAM_AEC_ROI_OFF;
     }
     free(areas);
@@ -6880,10 +7048,11 @@ int32_t QCameraParameters::setRedeyeReduction(const char *redeyeStr)
  *==========================================================================*/
 cam_denoise_process_type_t QCameraParameters::getWaveletDenoiseProcessPlate()
 {
+#if 0
     char prop[PROPERTY_VALUE_MAX];
     memset(prop, 0, sizeof(prop));
     cam_denoise_process_type_t processPlate = CAM_WAVELET_DENOISE_CBCR_ONLY;
-    property_get("persist.denoise.process.plates", prop, "0");
+    property_get("persist.denoise.process.plates", prop, "");
     if (strlen(prop) > 0) {
         switch(atoi(prop)) {
         case 0:
@@ -6904,6 +7073,8 @@ cam_denoise_process_type_t QCameraParameters::getWaveletDenoiseProcessPlate()
         }
     }
     return processPlate;
+#endif
+    return CAM_WAVELET_DENOISE_STREAMLINED_CBCR;
 }
 
 /*===========================================================================
@@ -7175,7 +7346,7 @@ int32_t QCameraParameters::getStreamFormat(cam_stream_type_t streamType,
         break;
     case CAM_STREAM_TYPE_RAW:
         if (mPictureFormat >= CAM_FORMAT_YUV_RAW_8BIT_YUYV) {
-            format = (cam_format_t)mPictureFormat;
+            format = CAM_FORMAT_BAYER_QCOM_RAW_10BPP_RGGB;
         } else {
             char raw_format[PROPERTY_VALUE_MAX];
             int rawFormat;
@@ -7479,11 +7650,7 @@ int QCameraParameters::getMaxUnmatchedFramesInQueue()
  */
 int QCameraParameters::getMinPPBufs()
 {
-    // Ideally we should be getting this from m_pCapability->min_num_pp_bufs. But as of now
-    // this number reported by backend is wrong. It simply adds all the ppbuf requirement by
-    // each module irrespective of whether its connected or not. This has to be enhanced later
-    // to get the exact requirement from backend.
-    return MIN_PP_BUF_CNT;
+    return m_pCapability->min_num_pp_bufs;
 }
 
 /*===========================================================================
@@ -7656,11 +7823,14 @@ int QCameraParameters::getBurstNum()
  *==========================================================================*/
 int QCameraParameters::getJpegQuality()
 {
+#if 0
     int quality = getInt(KEY_JPEG_QUALITY);
     if (quality < 0) {
-        quality = 98; // set to default quality value
+        quality = 85; // set to default quality value
     }
     return quality;
+#endif
+    return 95;
 }
 
 
@@ -9306,6 +9476,7 @@ bool QCameraParameters::isHDREnabled()
 {
     return ((m_nBurstNum == 1) && (m_bHDREnabled || m_HDRSceneEnabled));
 }
+
 /*===========================================================================
  * FUNCTION   : isAVTimerEnabled
  *

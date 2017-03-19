@@ -388,7 +388,6 @@ typedef struct mm_channel {
     uint8_t need3ABracketing;
     uint8_t isFlashBracketingEnabled;
     uint8_t isZoom1xFrameRequested;
-
 } mm_channel_t;
 
 typedef struct {

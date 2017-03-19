@@ -664,11 +664,6 @@ typedef struct {
                                       uint32_t ch_id,
                                       mm_camera_super_buf_notify_mode_t notify_mode);
 
-    /* choose stable frame for image stability */
-    int32_t (*do_is_process_for_capture) (uint32_t camera_handle,
-                                          uint32_t ch_id,
-                                          uint32_t is_process_flag);
-
      /** process_advanced_capture: function definition for start/stop advanced capture
      *                    for snapshot.
      *    @camera_handle : camera handle
@@ -702,9 +697,6 @@ uint8_t get_num_of_cameras();
 /* return reference pointer of camera vtbl */
 mm_camera_vtbl_t * camera_open(uint8_t camera_idx);
 struct camera_info *get_cam_info(int camera_id);
-
-/* return 1 if have another camera opened */
-int have_camera_opened();
 
 /* helper functions */
 int32_t mm_stream_calc_offset_preview(cam_stream_info_t *stream_info,

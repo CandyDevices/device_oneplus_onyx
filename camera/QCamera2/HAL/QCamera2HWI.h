@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014,2016 The Linux Foundataion. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundataion. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -36,6 +36,7 @@
 #include <utils/Mutex.h>
 #include <utils/Condition.h>
 #include <QCameraParameters.h>
+
 #include "QCameraQueue.h"
 #include "QCameraCmdThread.h"
 #include "QCameraChannel.h"
@@ -51,7 +52,6 @@ extern "C" {
 #include <mm_camera_interface.h>
 #include <mm_jpeg_interface.h>
 }
-
 
 #if DISABLE_DEBUG_LOG
 
@@ -69,8 +69,13 @@ inline void __null_log(int, const char *, const char *, ...) {}
 
 #ifdef CDBG
 #undef CDBG
-#define CDBG(...) do{} while(0)
 #endif
+#define CDBG(...) do{} while(0)
+
+#ifdef CDBG_HIGH
+#undef CDBG_HIGH
+#endif
+#define CDBG_HIGH(...) do{} while(0)
 
 #else
 
@@ -193,8 +198,6 @@ public:
     static void * cbNotifyRoutine(void * data);
     static void releaseNotifications(void *data, void *user_data);
     static bool matchSnapshotNotifications(void *data, void *user_data);
-    static bool matchTimestampNotifications(void *data, void *user_data);
-    virtual int32_t flushVideoNotifications();
 private:
 
     camera_notify_callback         mNotifyCb;
@@ -289,9 +292,7 @@ public:
     friend class QCameraStateMachine;
     friend class QCameraPostProcessor;
     friend class QCameraCbNotifier;
-    static void getFlashInfo(const int cameraId,
-            bool& hasFlash,
-            char (&flashNode)[QCAMERA_MAX_FILEPATH_LENGTH]);
+
 private:
     int setPreviewWindow(struct preview_stream_ops *window);
     int setCallBacks(
@@ -357,7 +358,6 @@ private:
     bool isRegularCapture();
     bool isCACEnabled();
     bool isPreviewRestartEnabled();
-    bool is4k2kResolution(cam_dimension_t* resolution);
     bool isCaptureShutterEnabled();
     bool isAFRunning();
     bool needReprocess();
@@ -390,8 +390,6 @@ private:
     int32_t processASDUpdate(cam_auto_scene_t scene);
     int32_t processJpegNotify(qcamera_jpeg_evt_payload_t *jpeg_job);
     int32_t processHDRData(cam_asd_hdr_scene_data_t hdr_scene);
-    int32_t processZSLCaptureDone();
-    int32_t processAEInfo(cam_ae_params_t &ae_params);
     int32_t transAwbMetaToParams(cam_awb_params_t &awb_params);
     int32_t processAWBUpdate(cam_awb_params_t &awb_params);
 
@@ -447,11 +445,6 @@ private:
     bool removeSizeFromList(cam_dimension_t* size_list,
                             uint8_t length,
                             cam_dimension_t size);
-    int32_t unconfigureAdvancedCapture();
-    void setLongshotEnable(bool enable) {
-    mLongshotEnabled=enable;
-    mParameters.setLongshotEnable(mLongshotEnabled);
-    };
     int32_t configureAdvancedCapture();
     int32_t configureAFBracketing(bool enable = true);
     int32_t configureFlashBracketing();
@@ -464,6 +457,15 @@ private:
     inline uint32_t getOutputImageCount() {return mOutputCount;}
     bool processUFDumps(qcamera_jpeg_evt_payload_t *evt);
     void captureDone();
+
+    /* Exposure-time algorithms */
+    void processCameraExpTime(QCamera2HardwareInterface *pme,
+                        float currGain, bool is60Hz);
+    void processVideoExpTime(QCamera2HardwareInterface *pme,
+                        float currGain, float currExpTime,
+                        bool is60Hz);
+    void processExpTimeAlgos(QCamera2HardwareInterface *pme,
+                        float currGain, float currExpTime);
 
     static void copyList(cam_dimension_t* src_list,
                    cam_dimension_t* dst_list, uint8_t len);
@@ -646,11 +648,10 @@ private:
     int32_t mReprocJob;
     int32_t mRawdataJob;
     int32_t mOutputCount;
-    uint32_t mInputCount;
-    bool mAdvancedCaptureConfigured;
     bool mPreviewFrameSkipValid;
     cam_frame_idx_range_t mPreviewFrameSkipIdxRange;
-    QCameraVideoMemory *mVideoMem;
+    uint64_t mVideoFrameCnt;
+    uint64_t mCameraFrameCnt;
 };
 
 }; // namespace qcamera

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2016, The Linux Foundataion. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundataion. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are
@@ -94,9 +94,6 @@ void QCamera2HardwareInterface::zsl_channel_cb(mm_camera_super_buf_t *recvd_fram
         CDBG_HIGH("[KPI Perf] %s: superbuf frame_idx %d", __func__,
             recvd_frame->bufs[0]->frame_idx);
     }
-
-//add by likelong@camera 2016.7.11 for advanced capture performance
-
 
     // DUMP RAW if available
     property_get("persist.camera.zsl_raw", value, "0");
@@ -450,7 +447,6 @@ void QCamera2HardwareInterface::preview_stream_cb_routine(mm_camera_super_buf_t 
 
     int idx = frame->buf_idx;
     pme->dumpFrameToFile(stream, frame, QCAMERA_DUMP_FRM_PREVIEW);
-
 
     if (pme->mPreviewFrameSkipValid) {
         uint32_t min_frame_idx = pme->mPreviewFrameSkipIdxRange.min_frame_idx;
@@ -850,7 +846,6 @@ void QCamera2HardwareInterface::video_stream_cb_routine(mm_camera_super_buf_t *s
                                                         QCameraStream *stream,
                                                         void *userdata)
 {
-    QCameraVideoMemory *videoMemObj = NULL;
     CDBG("[KPI Perf] %s : BEGIN", __func__);
     QCamera2HardwareInterface *pme = (QCamera2HardwareInterface *)userdata;
     if (pme == NULL ||
@@ -870,19 +865,18 @@ void QCamera2HardwareInterface::video_stream_cb_routine(mm_camera_super_buf_t *s
        CDBG_HIGH("[KPI Perf] %s : PROFILE_FIRST_RECORD_FRAME", __func__);
        pme->m_bRecordStarted = false ;
     }
-    CDBG("%s: Stream(%d), Timestamp: %ld %ld",
+    CDBG_HIGH("%s: Stream(%d), Timestamp: %ld %ld",
           __func__,
           frame->stream_id,
           frame->ts.tv_sec,
           frame->ts.tv_nsec);
     nsecs_t timeStamp;
     timeStamp = nsecs_t(frame->ts.tv_sec) * 1000000000LL + frame->ts.tv_nsec;
-    CDBG("Send Video frame to services/encoder TimeStamp : %lld", timeStamp);
-    videoMemObj = (QCameraVideoMemory *)frame->mem_info;
+    CDBG_HIGH("Send Video frame to services/encoder TimeStamp : %lld", timeStamp);
+    QCameraMemory *videoMemObj = (QCameraMemory *)frame->mem_info;
     camera_memory_t *video_mem = NULL;
     if (NULL != videoMemObj) {
         video_mem = videoMemObj->getMemory(frame->buf_idx, (pme->mStoreMetaDataInFrame > 0)? true : false);
-        videoMemObj->updateNativeHandle(frame->buf_idx);
     }
     if (NULL != videoMemObj && NULL != video_mem) {
         pme->dumpFrameToFile(stream, frame, QCAMERA_DUMP_FRM_VIDEO);
@@ -1133,6 +1127,173 @@ void QCamera2HardwareInterface::snapshot_raw_stream_cb_routine(mm_camera_super_b
     CDBG_HIGH("[KPI Perf] %s : END", __func__);
 }
 
+/***** Exposure-time algorithm definitions *****/
+
+/**** Exposure times (backend uses 6-decimal precision) ****/
+#define EXP_TIME_OVERRIDE_DISABLE 0.0f
+
+/*** 60 Hz ***/
+#define EXP_TIME_20FPS 0.050000f /* 1/20 */
+#define EXP_TIME_30FPS 0.033333f /* 1/30 */
+#define EXP_TIME_40FPS 0.025000f /* 1/40 */
+#define EXP_TIME_60FPS 0.016666f /* 1/60 */
+#define EXP_TIME_120FPS 0.008333f /* 1/120 */
+
+/*** 50 Hz ***/
+#define EXP_TIME_25FPS 0.040000f /* 1/25 */
+#define EXP_TIME_33FPS 0.030303f /* 1/33 */
+#define EXP_TIME_50FPS 0.020000f /* 1/50 */
+#define EXP_TIME_75FPS 0.013333f /* 1/75 */
+#define EXP_TIME_125FPS 0.008000f /* 1/125 */
+
+/**** Camera-specific ****/
+/*
+ * Gain threshs must be calculated to conform to gain-transition
+ * threshs. These values cannot be arbitrary. All values are calculated
+ * using the highest thresh (CAM_GAIN_VERY_HIGH_THRESH for 60 Hz,
+ * CAM_GAIN_HIGH_THRESH for 50 Hz) as the base value.
+ */
+#define CAM_GAIN_THRESH_GAP 0.5f
+#define CAM_GAIN_VERY_HIGH_THRESH 12.0f
+#define CAM_GAIN_HIGH_THRESH 6.0f
+#define CAM_GAIN_MID_THRESH 4.0f
+#define CAM_GAIN_LOW_THRESH 1.8f
+
+/* Disable override here to prevent thrashing flicker and overexposure */
+#define CAM_GAIN_DISABLE_THRESH 1.1f
+
+/**** Camcorder-specific ****/
+#define BACKEND_EXP_TIME_ERR_MARGIN 0.0001f
+#define CAMCORDER_GAIN_DISABLE_THRESH 1.001f
+
+/*** HFR ***/
+#define HFR_60FPS 60
+#define HFR_120FPS 120
+
+/*
+ * Manually control exp time for camera in order to implement
+ * exp-time based antishake. This fixes frame drops, slow autofocus,
+ * and blurry photos in low-light conditions.
+ */
+void QCamera2HardwareInterface::processCameraExpTime(QCamera2HardwareInterface *pme,
+                                            float currGain, bool is60Hz)
+{
+    float oldExpTime = pme->mParameters.getPrvwExpTime();
+
+    /* Antishake for camera */
+    if (currGain < CAM_GAIN_DISABLE_THRESH) {
+            pme->mParameters.setPrvwExpTime(EXP_TIME_OVERRIDE_DISABLE);
+    } else if (is60Hz) { /* Execute with 60 Hz banding compensation */
+        if (currGain > CAM_GAIN_VERY_HIGH_THRESH) { /* 1/20th of a second */
+            pme->mParameters.setPrvwExpTime(EXP_TIME_20FPS);
+        } else if (currGain > CAM_GAIN_HIGH_THRESH) { /* 1/30th of a second */
+            /* threshold = (currGain * (1/20 / 1/30)) + cushion */
+            float thresh = (currGain * EXP_TIME_20FPS / EXP_TIME_30FPS)
+                                                            + CAM_GAIN_THRESH_GAP;
+            /* Prevent thrashing with 1/20th sec case */
+            if (oldExpTime != EXP_TIME_20FPS || thresh < CAM_GAIN_VERY_HIGH_THRESH)
+                pme->mParameters.setPrvwExpTime(EXP_TIME_30FPS);
+        } else if (currGain > CAM_GAIN_MID_THRESH) { /* 1/40th of a second */
+            /* threshold = (currGain * (1/30 / 1/40)) + cushion */
+            float thresh = (currGain * EXP_TIME_30FPS / EXP_TIME_40FPS)
+                                                            + CAM_GAIN_THRESH_GAP;
+            /* Prevent thrashing with 1/30th sec case */
+            if (oldExpTime != EXP_TIME_30FPS || thresh < CAM_GAIN_HIGH_THRESH)
+                pme->mParameters.setPrvwExpTime(EXP_TIME_40FPS);
+        } else if (currGain > CAM_GAIN_LOW_THRESH) { /* 1/60th of a second */
+            /* threshold = (currGain * (1/40 / 1/60)) + cushion */
+            float thresh = (currGain * EXP_TIME_40FPS / EXP_TIME_60FPS)
+                                                            + CAM_GAIN_THRESH_GAP;
+            /* Prevent thrashing with 1/40th sec case */
+            if (oldExpTime != EXP_TIME_40FPS || thresh < CAM_GAIN_MID_THRESH)
+                pme->mParameters.setPrvwExpTime(EXP_TIME_60FPS);
+        }
+    } else { /* Execute with 50 Hz banding compensation */
+        if (currGain > CAM_GAIN_HIGH_THRESH) { /* 1/25th of a second */
+            pme->mParameters.setPrvwExpTime(EXP_TIME_25FPS);
+        } else if (currGain > CAM_GAIN_MID_THRESH) { /* 1/33rd of a second */
+            /* threshold = (currGain * (1/25 / 1/33)) + cushion */
+            float thresh = (currGain * EXP_TIME_25FPS / EXP_TIME_33FPS)
+                                                            + CAM_GAIN_THRESH_GAP;
+            /* Prevent thrashing with 1/33rd sec case */
+            if (oldExpTime != EXP_TIME_25FPS || thresh < CAM_GAIN_HIGH_THRESH)
+                pme->mParameters.setPrvwExpTime(EXP_TIME_33FPS);
+        } else if (currGain > CAM_GAIN_LOW_THRESH) { /* 1/50th of a second */
+            /* threshold = (currGain * (1/33 / 1/50)) + cushion */
+            float thresh = (currGain * EXP_TIME_33FPS / EXP_TIME_50FPS)
+                                                            + CAM_GAIN_THRESH_GAP;
+            /* Prevent thrashing with 1/33rd sec case */
+            if (oldExpTime != EXP_TIME_33FPS || thresh < CAM_GAIN_MID_THRESH)
+                pme->mParameters.setPrvwExpTime(EXP_TIME_50FPS);
+        }
+    }
+}
+
+/*
+ * Manually control exp time for camcorder as camcorder chromatix
+ * library does not cap it to 1/30th of a second, causing huge
+ * frame drops in low-light.
+ *
+ * Also manually control exp time for HFR mode as HFR chromatix
+ * libraries suffer from blue tint. This allows the use of
+ * the regular video chromatix library for HFR recordings.
+ */
+void QCamera2HardwareInterface::processVideoExpTime(QCamera2HardwareInterface *pme,
+                                        float currGain, float currExpTime,
+                                        bool is60Hz)
+{
+    uint32_t hfrMode = pme->mParameters.getHfrMode();
+    float maxExpTime, newExpTime;
+
+    switch (hfrMode) {
+    case HFR_60FPS:
+        newExpTime = is60Hz ? EXP_TIME_60FPS : EXP_TIME_75FPS;
+        break;
+    case HFR_120FPS:
+        newExpTime = is60Hz ? EXP_TIME_120FPS : EXP_TIME_125FPS;
+        break;
+    default: /* 30 FPS video */
+        newExpTime = is60Hz ? EXP_TIME_30FPS : EXP_TIME_33FPS;
+    }
+
+    /* Account for any rounding differences when checking backend's exp time */
+    maxExpTime = newExpTime + BACKEND_EXP_TIME_ERR_MARGIN;
+
+    if (currExpTime > maxExpTime) {
+        pme->mParameters.setPrvwExpTime(newExpTime);
+    } else if (currGain <= CAMCORDER_GAIN_DISABLE_THRESH) {
+        /* Prevent overexposure */
+        pme->mParameters.setPrvwExpTime(EXP_TIME_OVERRIDE_DISABLE);
+    }
+}
+
+void QCamera2HardwareInterface::processExpTimeAlgos(QCamera2HardwareInterface *pme,
+                                            float currGain, float currExpTime)
+{
+    bool isCamcorderMode = pme->mParameters.getAppRecordingHint();
+    bool is60Hz = pme->mParameters.is60HzAntibanding();
+
+    if (isCamcorderMode) {
+        /*
+         * Only update exp time once every 3 frames to prevent thrashing.
+         * Make sure exp time is checked on first frame (post-increment
+         * mVideoFrameCnt).
+         */
+        if (!(pme->mVideoFrameCnt++ % 3))
+            pme->processVideoExpTime(pme, currGain, currExpTime, is60Hz);
+        pme->mCameraFrameCnt = 0;
+    } else {
+        /*
+         * Only update exp time once every 3 frames to prevent thrashing.
+         * Make sure exp time is checked on first frame (post-increment
+         * mCameraFrameCnt).
+         */
+        if (!(pme->mCameraFrameCnt++ % 3))
+            pme->processCameraExpTime(pme, currGain, is60Hz);
+        pme->mVideoFrameCnt = 0;
+    }
+}
+
 /*===========================================================================
  * FUNCTION   : metadata_stream_cb_routine
  *
@@ -1312,6 +1473,10 @@ void QCamera2HardwareInterface::metadata_stream_cb_routine(mm_camera_super_buf_t
     if(pMetaData->is_ae_params_valid) {
         pme->mExifParams.ae_params = pMetaData->ae_params;
         pme->mFlashNeeded = pMetaData->ae_params.flash_needed;
+
+        /* Process exposure-time algorithms (for camera and camcorder) */
+        pme->processExpTimeAlgos(pme, pMetaData->ae_params.real_gain,
+                                pMetaData->ae_params.exp_time);
     }
     if(pMetaData->is_awb_params_valid) {
         pme->mExifParams.awb_params = pMetaData->awb_params;
@@ -1864,32 +2029,6 @@ bool QCameraCbNotifier::matchSnapshotNotifications(void *data,
 }
 
 /*===========================================================================
-* FUNCTION   : matchTimestampNotifications
-*
-* DESCRIPTION: matches timestamp data callbacks
-*
-* PARAMETERS :
-*   @data      : data to match
-*   @user_data : context data
-*
-* RETURN     : bool match
-*              true - match found
-*              false- match not found
-*==========================================================================*/
-bool QCameraCbNotifier::matchTimestampNotifications(void *data, void * /*user_data*/)
-{
-    qcamera_callback_argm_t *arg = ( qcamera_callback_argm_t * ) data;
-    if (NULL != arg) {
-        if ((QCAMERA_DATA_TIMESTAMP_CALLBACK == arg->cb_type) &&
-            (CAMERA_MSG_VIDEO_FRAME == arg->msg_type)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
-/*===========================================================================
  * FUNCTION   : cbNotifyRoutine
  *
  * DESCRIPTION: callback thread which interfaces with the upper layers
@@ -2129,29 +2268,6 @@ void QCameraCbNotifier::setCallbacks(camera_notify_callback notifyCb,
               __func__);
     }
 }
-
-/*===========================================================================
-* FUNCTION   : flushVideoNotifications
-*
-* DESCRIPTION: flush all pending video notifications
-*              from the notifier queue
-*
-* PARAMETERS : None
-*
-* RETURN     : int32_t type of status
-*              NO_ERROR  -- success
-*              none-zero failure code
-*==========================================================================*/
-int32_t QCameraCbNotifier::flushVideoNotifications()
-{
-    if (!mActive) {
-        ALOGE("notify thread is not active");
-        return UNKNOWN_ERROR;
-    }
-    mDataQ.flushNodes(matchTimestampNotifications);
-    return NO_ERROR;
-}
-
 
 /*===========================================================================
  * FUNCTION   : startSnapshots

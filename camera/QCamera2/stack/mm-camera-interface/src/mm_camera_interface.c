@@ -1489,14 +1489,14 @@ uint8_t get_num_of_cameras()
             struct media_entity_desc entity;
             memset(&entity, 0, sizeof(entity));
             entity.id = num_entities++;
-            CDBG_HIGH("entity id %d", entity.id);
+            CDBG_ERROR("entity id %d", entity.id);
             rc = ioctl(dev_fd, MEDIA_IOC_ENUM_ENTITIES, &entity);
             if (rc < 0) {
                 CDBG_ERROR("Done enumerating media entities");
                 rc = 0;
                 break;
             }
-            CDBG_HIGH("entity name %s type %d group id %d",
+            CDBG_ERROR("entity name %s type %d group id %d",
                 entity.name, entity.type, entity.group_id);
             if (entity.type == MEDIA_ENT_T_V4L2_SUBDEV &&
                 entity.group_id == MSM_CAMERA_SUBDEV_SENSOR_INIT) {
@@ -1640,7 +1640,6 @@ static int32_t mm_camera_intf_process_advanced_capture(uint32_t camera_handle,
     return rc;
 }
 
-
 /* camera ops v-table */
 static mm_camera_ops_t mm_camera_ops = {
     .query_capability = mm_camera_intf_query_capability,
@@ -1677,19 +1676,6 @@ static mm_camera_ops_t mm_camera_ops = {
     .process_advanced_capture = mm_camera_intf_process_advanced_capture
 };
 
-int have_camera_opened(){
-
-    int rc = 0;
-    int i = 0;
-    for (i = 0; i < g_cam_ctrl.num_cam; i++) {
-        if(NULL != g_cam_ctrl.cam_obj[i] && g_cam_ctrl.cam_obj[i]->ref_count > 0){
-            rc = 1;
-            break;
-        }
-    }
-    return rc;
-}
-
 /*===========================================================================
  * FUNCTION   : camera_open
  *
@@ -1705,7 +1691,6 @@ mm_camera_vtbl_t * camera_open(uint8_t camera_idx)
 {
     int32_t rc = 0;
     mm_camera_obj_t* cam_obj = NULL;
-
 
     CDBG("%s: E camera_idx = %d\n", __func__, camera_idx);
     if (camera_idx >= g_cam_ctrl.num_cam) {

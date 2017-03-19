@@ -468,7 +468,7 @@ int32_t mm_stream_fsm_inited(mm_stream_t *my_obj,
             break;
         }
         strcpy(t_devname, mm_camera_util_get_dev_name(my_obj->ch_obj->cam_obj->my_hdl));
-        if (t_devname[0] == '\0') {
+        if (t_devname == NULL) {
             rc = -1;
             break;
         }
@@ -1060,9 +1060,6 @@ int32_t mm_stream_read_msm_frame(mm_stream_t * my_obj,
             (vb.reserved == V4L2_PIX_FMT_NV14 || vb.reserved == V4L2_PIX_FMT_NV41);
 #endif
 
-        CDBG_HIGH("%s: VIDIOC_DQBUF buf_index %d, frame_idx %d, stream type %d, queued cnt %d\n",
-                   __func__, vb.index, buf_info->buf->frame_idx,
-                   my_obj->stream_info->stream_type,my_obj->queued_buffer_count);
         pthread_mutex_unlock(&my_obj->buf_lock);
         if ( NULL != my_obj->mem_vtbl.clean_invalidate_buf ) {
             rc = my_obj->mem_vtbl.clean_invalidate_buf(idx,
@@ -1279,11 +1276,6 @@ int32_t mm_stream_qbuf(mm_stream_t *my_obj, mm_camera_buf_def_t *buf)
             CDBG_HIGH("%s: Stopped poll on stream %p type: %d", __func__,
                 my_obj, my_obj->stream_info->stream_type);
         }
-    } else {
-        CDBG_HIGH("%s: VIDIOC_QBUF buf_index %d,stream type %d,frame_idx %d,queued cnt %d",
-                   __func__,buffer.index,
-                   my_obj->stream_info->stream_type,
-                   buf->frame_idx, my_obj->queued_buffer_count);
     }
 
     return rc;
@@ -1310,7 +1302,7 @@ int32_t mm_stream_request_buf(mm_stream_t * my_obj)
     CDBG("%s: E, my_handle = 0x%x, fd = %d, state = %d",
          __func__, my_obj->my_hdl, my_obj->fd, my_obj->state);
 
-    CDBG_HIGH("%s: buf_num = %d, stream type = %d",
+    CDBG_ERROR("%s: buf_num = %d, stream type = %d",
          __func__, buf_num, my_obj->stream_info->stream_type);
 
     if(buf_num > MM_CAMERA_MAX_NUM_FRAMES) {

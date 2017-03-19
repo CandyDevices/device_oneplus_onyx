@@ -1112,6 +1112,19 @@ OMX_ERRORTYPE mm_jpeg_session_config_common(mm_jpeg_job_session_t *p_session)
   mm_jpeg_encode_job_t *p_jobparams = &p_session->encode_job;
   QOMX_EXIF_INFO exif_info;
 
+  /* Set aperture value based on cam used */
+  if (!p_jobparams->position) {
+    if (p_jobparams->p_metadata->is_sensor_params_valid)
+      p_jobparams->p_metadata->sensor_params.aperture_value = 2.2f;
+    else
+      p_jobparams->cam_exif_params.sensor_params.aperture_value = 2.2f;
+  } else {
+    if (p_jobparams->p_metadata->is_sensor_params_valid)
+      p_jobparams->p_metadata->sensor_params.aperture_value = 2.4f;
+    else
+      p_jobparams->cam_exif_params.sensor_params.aperture_value = 2.4f;
+  }
+
   /* set rotation */
   memset(&rotate, 0, sizeof(rotate));
   rotate.nPortIndex = 1;
@@ -1304,7 +1317,7 @@ static OMX_ERRORTYPE mm_jpeg_configure_job_params(
   work_buffer.fd = p_session->work_buffer.p_pmem_fd;
   work_buffer.vaddr = p_session->work_buffer.addr;
   work_buffer.length = p_session->work_buffer.size;
-  CDBG_HIGH("%s:%d] Work buffer %d %p WorkBufSize: %d", __func__, __LINE__,
+  CDBG_ERROR("%s:%d] Work buffer %d %p WorkBufSize: %d", __func__, __LINE__,
     work_buffer.fd, work_buffer.vaddr, work_buffer.length);
 
   buffer_invalidate(&p_session->work_buffer);
@@ -1318,8 +1331,8 @@ static OMX_ERRORTYPE mm_jpeg_configure_job_params(
 
   /* set metadata */
   ret = mm_jpeg_metadata(p_session);
-  CDBG_HIGH("%s: config makernote data failed", __func__);
   if (OMX_ErrorNone != ret) {
+    CDBG_ERROR("%s: config makernote data failed", __func__);
     return ret;
   }
 
@@ -1976,7 +1989,7 @@ int32_t mm_jpeg_start_job(mm_jpeg_obj *my_obj,
       cam_sem_post(&my_obj->job_mgr.job_sem);
   }
 
-  CDBG_HIGH("%s:%d] X", __func__, __LINE__);
+  CDBG_ERROR("%s:%d] X", __func__, __LINE__);
 
   return rc;
 }
@@ -2122,7 +2135,7 @@ int32_t mm_jpeg_create_session(mm_jpeg_obj *my_obj,
   if (work_bufs_need > MM_JPEG_CONCURRENT_SESSIONS_COUNT) {
     work_bufs_need = MM_JPEG_CONCURRENT_SESSIONS_COUNT;
   }
-  CDBG_HIGH("%s:%d] >>>> Work bufs need %d", __func__, __LINE__, work_bufs_need);
+  CDBG_ERROR("%s:%d] >>>> Work bufs need %d", __func__, __LINE__, work_bufs_need);
   work_buf_size = CEILING64(my_obj->max_pic_w) *
       CEILING64(my_obj->max_pic_h) * 1.5;
   for (i = my_obj->work_buf_cnt; i < work_bufs_need; i++) {
@@ -2256,7 +2269,7 @@ static int32_t mm_jpegenc_destroy_job(mm_jpeg_job_session_t *p_session)
   mm_jpeg_encode_job_t *p_jobparams = &p_session->encode_job;
   int i = 0, rc = 0;
 
-  CDBG_HIGH("%s:%d] Exif entry count %d %d", __func__, __LINE__,
+  CDBG_ERROR("%s:%d] Exif entry count %d %d", __func__, __LINE__,
     (int)p_jobparams->exif_info.numOfEntries,
     (int)p_session->exif_count_local);
   for (i = 0; i < p_session->exif_count_local; i++) {
@@ -2740,7 +2753,7 @@ mm_jpeg_job_q_node_t* mm_jpeg_queue_remove_job_by_job_id(
         }
 
       if (lq_job_id == job_id) {
-        CDBG_HIGH("%s:%d] found matching job id", __func__, __LINE__);
+        CDBG_ERROR("%s:%d] found matching job id", __func__, __LINE__);
         job_node = data;
         cam_list_del_node(&node->list);
         queue->size--;
