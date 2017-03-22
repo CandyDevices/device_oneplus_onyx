@@ -599,7 +599,7 @@
         minBitRate="64000" maxBitRate="42000000"
         minFrameWidth="176" maxFrameWidth="4096"
         minFrameHeight="144" maxFrameHeight="2160"
-        minFrameRate="15" maxFrameRate="30"
+        minFrameRate="15" maxFrameRate="60"
         maxHFRFrameWidth="1920" maxHFRFrameHeight="1080"
         maxHFRMode="120"  />
 
