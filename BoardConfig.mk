@@ -35,12 +35,6 @@ TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_CPU_VARIANT := krait
 
-# Opts
-O3_OPTS := true
-POLLY_OPTS := true
-GRAPHITE_OPTS := true
-STRICT_ALIASING := true
-
 # Kernel
 BOARD_KERNEL_BASE := 0x00000000
 BOARD_KERNEL_CMDLINE := androidboot.hardware=qcom user_debug=23 msm_rtb.filter=0x3b7 ehci-hcd.park=3 androidboot.bootdevice=msm_sdcc.1
@@ -185,7 +179,6 @@ BOARD_SEPOLICY_DIRS += \
 
 # SnapDragon LLVM Compiler
 TARGET_USE_SDCLANG := true
-USE_CLANG_PLATFORM_BUILD := true
 
 # Disable dex-preopt of prebuilts to save space.
 DONT_DEXPREOPT_PREBUILTS := true
