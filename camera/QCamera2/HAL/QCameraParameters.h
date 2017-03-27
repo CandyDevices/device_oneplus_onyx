@@ -432,6 +432,10 @@ public:
     static const char FOCUS_ALGO_CENTER_WEIGHTED[];
     static const char FOCUS_ALGO_FRAME_AVERAGE[];
 
+    // Values for manual stuffs.
+    static const char FOCUS_MODE_MANUAL_POSITION[];
+    static const char WHITE_BALANCE_MANUAL_CCT[];
+
     // Values for AE Bracketing settings.
     static const char AE_BRACKET_OFF[];
     static const char AE_BRACKET[];

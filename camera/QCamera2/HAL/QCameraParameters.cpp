@@ -150,6 +150,10 @@ const char QCameraParameters::EFFECT_NEON[] = "neon";
 const char QCameraParameters::TOUCH_AF_AEC_OFF[] = "touch-off";
 const char QCameraParameters::TOUCH_AF_AEC_ON[] = "touch-on";
 
+// Values for manual stuffs
+const char QCameraParameters::FOCUS_MODE_MANUAL_POSITION[] = "manual";
+const char QCameraParameters::WHITE_BALANCE_MANUAL_CCT[] = "manual-cct";
+
 // Values for scene mode settings.
 const char QCameraParameters::SCENE_MODE_ASD[] = "asd";   // corresponds to CAMERA_BESTSHOT_AUTO in HAL
 const char QCameraParameters::SCENE_MODE_BACKLIGHT[] = "backlight";
@@ -453,7 +457,7 @@ const QCameraParameters::QCameraMap QCameraParameters::FOCUS_MODES_MAP[] = {
     { FOCUS_MODE_EDOF,               CAM_FOCUS_MODE_EDOF },
     { FOCUS_MODE_CONTINUOUS_PICTURE, CAM_FOCUS_MODE_CONTINOUS_PICTURE },
     { FOCUS_MODE_CONTINUOUS_VIDEO,   CAM_FOCUS_MODE_CONTINOUS_VIDEO },
-    //{ FOCUS_MODE_MANUAL_POSITION,    CAM_FOCUS_MODE_MANUAL},
+    { FOCUS_MODE_MANUAL_POSITION,    CAM_FOCUS_MODE_MANUAL},
 };
 
 const QCameraParameters::QCameraMap QCameraParameters::EFFECT_MODES_MAP[] = {
@@ -517,7 +521,7 @@ const QCameraParameters::QCameraMap QCameraParameters::WHITE_BALANCE_MODES_MAP[]
     { WHITE_BALANCE_CLOUDY_DAYLIGHT, CAM_WB_MODE_CLOUDY_DAYLIGHT },
     { WHITE_BALANCE_TWILIGHT,        CAM_WB_MODE_TWILIGHT },
     { WHITE_BALANCE_SHADE,           CAM_WB_MODE_SHADE },
-    //{ WHITE_BALANCE_MANUAL_CCT,      CAM_WB_MODE_CCT},
+    { WHITE_BALANCE_MANUAL_CCT,      CAM_WB_MODE_CCT},
 };
 
 const QCameraParameters::QCameraMap QCameraParameters::ANTIBANDING_MODES_MAP[] = {
@@ -2018,12 +2022,12 @@ int32_t  QCameraParameters::setFocusPosition(const QCameraParameters& params)
     const char *focus_str = params.get(KEY_FOCUS_MODE);
     CDBG_HIGH("%s, current focus mode: %s", __func__, focus_str);
 
-    /*if (focus_str != NULL) {
+    if (focus_str != NULL) {
         if (strcmp(focus_str, FOCUS_MODE_MANUAL_POSITION)) {
             CDBG("%s, dont set focus pos to back-end!", __func__);
             return NO_ERROR;
         }
-    }*/
+    }
     const char *pos = params.get(KEY_QC_MANUAL_FOCUS_POSITION);
     const char *prev_pos = get(KEY_QC_MANUAL_FOCUS_POSITION);
     const char *type = params.get(KEY_QC_MANUAL_FOCUS_POS_TYPE);
@@ -2316,12 +2320,12 @@ int32_t  QCameraParameters::setWBManualCCT(const QCameraParameters& params)
     const char *wb_str = params.get(KEY_WHITE_BALANCE);
     CDBG_HIGH("%s, current wb mode: %s", __func__, wb_str);
 
-    /*if (wb_str != NULL) {
+    if (wb_str != NULL) {
         if (strcmp(wb_str, WHITE_BALANCE_MANUAL_CCT)) {
             CDBG("%s, dont set cct to back-end.", __func__);
             return NO_ERROR;
         }
-    }*/
+    }
 
     const char *str = params.get(KEY_QC_WB_MANUAL_CCT);
     const char *prev_str = get(KEY_QC_WB_MANUAL_CCT);
