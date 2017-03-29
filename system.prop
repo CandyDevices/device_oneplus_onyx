@@ -48,6 +48,7 @@ qcom.bluetooth.soc=smd
 
 # Camera
 camera2.portability.force_api=1
+persist.camera.cpp.duplication=false
 
 # GPS
 persist.gps.qc_nlp_in_use=0
