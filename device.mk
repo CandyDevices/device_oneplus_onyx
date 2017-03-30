@@ -201,9 +201,6 @@ PRODUCT_PACKAGES += \
     libxml2 \
     libprotobuf-cpp-full
 
-PRODUCT_PACKAGES += \
-    libshims_sensors
-
 # Sensors
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/sensors/sensor_def_qcomdev.conf:system/etc/sensors/sensor_def_qcomdev.conf
