@@ -85,8 +85,8 @@ TARGET_TAP_TO_WAKE_NODE := "/proc/touchpanel/double_tap_enable"
 # Enable real time lockscreen charging current values
 BOARD_GLOBAL_CFLAGS += -DBATTERY_REAL_INFO
 
-# Enable dexpreopt to speed boot time
-WITH_DEXPREOPT_BOOT_IMG_ONLY := true
+# Disable dex-preopt of prebuilts to save space.
+DONT_DEXPREOPT_PREBUILTS := true
 
 # Filesystem
 BOARD_FLASH_BLOCK_SIZE := 131072
