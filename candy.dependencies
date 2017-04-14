@@ -2,7 +2,7 @@
   {
     "repository": "CandyDevices/device_oppo_common",
     "target_path": "device/oppo/common",
-    "branch": "c7.1.1-rj"
+    "branch": "c7.1.1"
   },
   {
     "repository": "CandyDevices/external_sony_boringssl-compat",
