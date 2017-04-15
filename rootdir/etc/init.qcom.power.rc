@@ -61,11 +61,17 @@ on property:sys.boot_completed=1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 300000
     # according to Qcom this legacy value improves first launch latencies
     setprop dalvik.vm.heapminfree 2m
-    write /proc/sys/vm/laptop_mode 1
+    # enable general tweaks
     trigger enable-low-power
-    # wakelock blockers
+    # wakelocks
     write /sys/module/wakeup/parameters/enable_qcom_rx_wakelock_ws 0
+    write /sys/module/wakeup/parameters/enable_wlan_extscan_wl_ws 0
+    write /sys/module/wakeup/parameters/enable_ipa_ws 0
+    write /sys/module/wakeup/parameters/enable_wlan_wow_wl_ws 0
     write /sys/module/wakeup/parameters/enable_wlan_ws 0
+    write /sys/module/wakeup/parameters/enable_timerfd_ws 0
+    write /sys/module/wakeup/parameters/enable_netlink_ws 0
+    write /sys/module/wakeup/parameters/enable_netmgr_wl_ws 0
     # improve color accuracy
     write /sys/devices/platform/kcal_ctrl.0/kcal "245 245 256"
     write /sys/devices/platform/kcal_ctrl.0/kcal_sat 273
