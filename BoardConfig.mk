@@ -105,9 +105,6 @@ TARGET_USERIMAGES_USE_F2FS := true
 # Workaround for factory issue
 BOARD_VOLD_CRYPTFS_MIGRATE := true
 
-# Rooted?
-DEFAULT_ROOT_METHOD := Magisk
-
 # FM
 BOARD_HAVE_QCOM_FM := true
 TARGET_QCOM_NO_FM_FIRMWARE := true
