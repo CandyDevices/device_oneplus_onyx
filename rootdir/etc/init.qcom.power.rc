@@ -1,5 +1,5 @@
 on early-init
-    setprop sys.io.scheduler zen
+    write /sys/block/mmcblk0/queue/scheduler zen
     write /sys/block/mmcblk0/bdi/read_ahead_kb 2048
     write /sys/class/mmc_host/mmc0/clk_scaling/scale_down_in_low_wr_load 1
 
@@ -26,10 +26,10 @@ on enable-low-power
     write /sys/module/msm_pm/modes/cpu2/retention/idle_enabled 1
     write /sys/module/msm_pm/modes/cpu3/retention/idle_enabled 1
 
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "lionheart"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "smartmax_eps"
 
     write /sys/kernel/cpu_input_boost/ib_freqs "1190400 1497600"
     write /sys/kernel/cpu_input_boost/ib_duration_ms 1400
@@ -53,7 +53,7 @@ on charger
     write /sys/devices/system/cpu/cpu3/online 0
 
 on boot
-    # boot with max freq, will be reset in post_boot script
+    # boot with max freq, will be reset after boot completes
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 1958400
 
 on property:sys.boot_completed=1
@@ -83,7 +83,7 @@ on property:recovery.perf.mode=1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "performance"
 
 on property:recovery.perf.mode=0
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "lionheart"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "smartmax_eps"
 
 on property:sys.perf.profile=0
     write /sys/devices/system/cpu/cpu1/online 1
@@ -97,23 +97,19 @@ on property:sys.perf.profile=0
     write /sys/class/devfreq/qcom,cpubw.41/governor "powersave"
     write /sys/class/kgsl/kgsl-3d0/devfreq/governor "powersave"
 
-    write /sys/block/mmcblk0/queue/read_ahead_kb 128
-
 on property:sys.perf.profile=1
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "lionheart"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "smartmax_eps"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "smartmax_eps"
 
     write /sys/kernel/cpu_input_boost/ib_freqs "1190400 1497600"
 
     write /sys/class/devfreq/qcom,cpubw.41/governor "msm_cpufreq"
     write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
-
-    write /sys/block/mmcblk0/queue/read_ahead_kb 128
 
 on property:sys.perf.profile=2
     write /sys/devices/system/cpu/cpu1/online 1
@@ -128,5 +124,3 @@ on property:sys.perf.profile=2
 
     write /sys/class/devfreq/qcom,cpubw.41/governor "performance"
     write /sys/class/kgsl/kgsl-3d0/devfreq/governor "performance"
-
-    write /sys/block/mmcblk0/queue/read_ahead_kb 1024
