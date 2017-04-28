@@ -1472,7 +1472,7 @@ int QCamera2HardwareInterface::initCapabilities(int cameraId,mm_camera_vtbl_t *c
     gCamCapability[cameraId]->min_required_pp_mask |=
                             CAM_QCOM_FEATURE_SHARPNESS | CAM_QCOM_FEATURE_CPP;
     gCamCapability[cameraId]->max_num_roi = 5;
-    gCamCapability[cameraId]->auto_hdr_supported = 0;
+    gCamCapability[cameraId]->auto_hdr_supported = 1;
 
     for (i = 0; i < ARRAY_SIZE(new_prvw_fmts); i++)
         gCamCapability[cameraId]->supported_preview_fmts[i] = new_prvw_fmts[i];
