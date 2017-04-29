@@ -1224,7 +1224,7 @@ int QCamera2HardwareInterface::openCamera()
         if (!strcmp(value, "running")) {
             // Restart camera server and try one more time
             property_set("camera.restart.qcamerasvr", "1");
-            usleep(3000 * 1000);
+            usleep(3500 * 1000);
             // Re-run get_num_of_cameras() to make sure mm-camera-intf
             // structs are properly initialized with both cams
             get_num_of_cameras();
