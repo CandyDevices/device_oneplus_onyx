@@ -157,6 +157,7 @@ TARGET_RECOVERY_FSTAB := $(PLATFORM_PATH)/rootdir/etc/fstab.qcom
 WITH_LZMA_OTA := true
 
 # RIL
+BOARD_PROVIDES_LIBRIL := true
 TARGET_RIL_VARIANT := caf
 
 # RPC
