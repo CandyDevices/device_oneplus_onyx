@@ -86,6 +86,7 @@ TARGET_TAP_TO_WAKE_NODE := "/proc/touchpanel/double_tap_enable"
 BOARD_GLOBAL_CFLAGS += -DBATTERY_REAL_INFO
 
 # Disable dex-preopt of prebuilts to save space.
+WITH_DEXPREOPT := true
 DONT_DEXPREOPT_PREBUILTS := true
 
 # Filesystem
