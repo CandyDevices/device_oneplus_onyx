@@ -26,16 +26,20 @@ on enable-low-power
     write /sys/module/msm_pm/modes/cpu2/retention/idle_enabled 1
     write /sys/module/msm_pm/modes/cpu3/retention/idle_enabled 1
 
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "lionheart"
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "lionheart"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "darkness"
 
-    write /sys/kernel/cpu_input_boost/ib_freqs "1190400 1497600"
-    write /sys/kernel/cpu_input_boost/ib_duration_ms 1400
+    write /sys/kernel/cpu_input_boost/ib_freqs "960000 1574400"
+    write /sys/kernel/cpu_input_boost/ib_duration_ms 1200
     write /sys/kernel/cpu_input_boost/enabled 1
 
+    write /sys/class/devfreq/qcom,cpubw.41/governor "msm_cpufreq"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "conservative"
+
     write /sys/block/mmcblk0/queue/scheduler deadline
+    write /sys/block/mmcblk0/bdi/read_ahead_kb 128
     setprop sys.io.scheduler deadline
 
 on charger
@@ -60,17 +64,19 @@ on property:sys.boot_completed=1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 300000
     # according to Qcom this legacy value improves first launch latencies
     setprop dalvik.vm.heapminfree 2m
+    write /proc/sys/vm/laptop_mode 1
     # enable general tweaks
     trigger enable-low-power
+    setprop persist.spectrum.profile 0
     # wakelocks
-    write /sys/module/wakeup/parameters/enable_qcom_rx_wakelock_ws 0
-    write /sys/module/wakeup/parameters/enable_wlan_extscan_wl_ws 0
-    write /sys/module/wakeup/parameters/enable_ipa_ws 0
-    write /sys/module/wakeup/parameters/enable_wlan_wow_wl_ws 0
-    write /sys/module/wakeup/parameters/enable_wlan_ws 0
-    write /sys/module/wakeup/parameters/enable_timerfd_ws 0
-    write /sys/module/wakeup/parameters/enable_netlink_ws 0
-    write /sys/module/wakeup/parameters/enable_netmgr_wl_ws 0
+    write /sys/module/wakeup/parameters/enable_qcom_rx_wakelock_ws Y
+    write /sys/module/wakeup/parameters/enable_wlan_extscan_wl_ws Y
+    write /sys/module/wakeup/parameters/enable_ipa_ws Y
+    write /sys/module/wakeup/parameters/enable_wlan_wow_wl_ws Y
+    write /sys/module/wakeup/parameters/enable_wlan_ws Y
+    write /sys/module/wakeup/parameters/enable_timerfd_ws Y
+    write /sys/module/wakeup/parameters/enable_netlink_ws Y
+    write /sys/module/wakeup/parameters/enable_netmgr_wl_ws Y
     # improve color accuracy
     write /sys/devices/platform/kcal_ctrl.0/kcal "245 245 256"
     write /sys/devices/platform/kcal_ctrl.0/kcal_sat 273
@@ -82,21 +88,23 @@ on property:recovery.perf.mode=1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "performance"
 
 on property:recovery.perf.mode=0
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "lionheart"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "darkness"
 
-on property:sys.perf.profile=0
+on property:persist.spectrum.profile=0
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
-    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "conservative"
-    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "conservative"
-    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "conservative"
-    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "conservative"
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "darkness"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "darkness"
 
-    write /sys/class/devfreq/qcom,cpubw.41/governor "powersave"
-    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "powersave"
+    write /sys/kernel/cpu_input_boost/ib_freqs "960000 1574400"
 
-on property:sys.perf.profile=1
+    write /sys/class/devfreq/qcom,cpubw.41/governor "msm_cpufreq"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "conservative"
+
+on property:persist.spectrum.profile=1
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
@@ -105,12 +113,24 @@ on property:sys.perf.profile=1
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "lionheart"
     write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "lionheart"
 
-    write /sys/kernel/cpu_input_boost/ib_freqs "1190400 1497600"
+    write /sys/kernel/cpu_input_boost/ib_freqs "1574400 1574400"
 
-    write /sys/class/devfreq/qcom,cpubw.41/governor "msm_cpufreq"
-    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "msm-adreno-tz"
+    write /sys/class/devfreq/qcom,cpubw.41/governor "performance"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "performance"
 
-on property:sys.perf.profile=2
+on property:persist.spectrum.profile=2
+    write /sys/devices/system/cpu/cpu1/online 1
+    write /sys/devices/system/cpu/cpu2/online 0
+    write /sys/devices/system/cpu/cpu3/online 0
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "conservative"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "conservative"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "conservative"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "conservative"
+
+    write /sys/class/devfreq/qcom,cpubw.41/governor "powersave"
+    write /sys/class/kgsl/kgsl-3d0/devfreq/governor "powersave"
+
+on property:persist.spectrum.profile=3
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
@@ -118,8 +138,6 @@ on property:sys.perf.profile=2
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "performance"
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "performance"
     write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "performance"
-
-    write /sys/kernel/cpu_input_boost/ib_freqs "1497600 1497600"
 
     write /sys/class/devfreq/qcom,cpubw.41/governor "performance"
     write /sys/class/kgsl/kgsl-3d0/devfreq/governor "performance"

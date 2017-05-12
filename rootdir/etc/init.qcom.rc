@@ -298,7 +298,7 @@ on post-fs
 
 on nonencrypted
     write /proc/sys/vm/page-cluster 0
-    write /proc/sys/vm/swappiness 40
+    write /proc/sys/vm/swappiness 50
 
 on post-fs-data
     mkdir /data/media 0770 media_rw media_rw
