@@ -25,7 +25,7 @@
   },
   {
     "repository": "CandyRoms/hardware_ril",
-    "target_path": "hardware/ril",
+    "target_path": "hardware/ril-caf",
     "branch": "onyx/c7.1.2-caf",
     "remote": "github"
   },
