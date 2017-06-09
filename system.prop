@@ -122,6 +122,7 @@ persist.timed.enable=true
 
 # Wifi
 wifi.interface=wlan0
+wifi.supplicant_scan_interval=180
 
 # Dalvik VM Properties
 dalvik.vm.heapstartsize=24m
