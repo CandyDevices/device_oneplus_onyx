@@ -63,7 +63,6 @@ persist.camera.cpp.duplication=false
 # GPS
 persist.gps.qc_nlp_in_use=0
 ro.gps.agps_provider=1
-ro.pip.gated=0
 
 # Graphics
 debug.sf.hw=1
@@ -86,9 +85,6 @@ drm.service.enabled=true
 
 # QMI
 persist.data.qmi.adb_logmask=0
-
-# SdcardFS
-ro.sys.sdcardfs=true
 
 # Qualcomm BT aptXHD
 persist.bt.enableAptXHD=true
@@ -135,7 +131,7 @@ dalvik.vm.heaptargetutilization=0.75
 dalvik.vm.heapminfree=2m
 dalvik.vm.heapmaxfree=8m
 
-#hwui properties
+# hwui properties
 ro.hwui.texture_cache_size=96
 ro.hwui.layer_cache_size=64
 ro.hwui.r_buffer_cache_size=12
