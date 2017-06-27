@@ -73,9 +73,6 @@ QCOM_BT_USE_SMD_TTY := true
 USE_DEVICE_SPECIFIC_CAMERA := true
 TARGET_HAS_LEGACY_HSR := true
 
-# Enable textrels
-TARGET_NEEDS_PLATFORM_TEXT_RELOCATIONS := true
-
 # Charger
 BOARD_CHARGER_DISABLE_INIT_BLANK := true
 
@@ -167,9 +164,6 @@ TARGET_NO_RPC := true
 
 # Sensors
 BOARD_GLOBAL_CFLAGS += -DCOMPAT_SENSORS_M
-
-# Legacy Blobs
-TARGET_NEEDS_TEXT_RELOCATIONS := true
 
 # SELinux
 include device/qcom/sepolicy/sepolicy.mk
