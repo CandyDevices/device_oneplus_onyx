@@ -153,7 +153,6 @@ BOARD_USES_QCOM_HARDWARE := true
 
 # Recovery
 TARGET_RECOVERY_FSTAB := $(PLATFORM_PATH)/rootdir/etc/fstab.qcom
-WITH_LZMA_OTA := true
 
 # RIL
 BOARD_PROVIDES_LIBRIL := true
