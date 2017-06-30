@@ -14,5 +14,3 @@ allow mediaserver audio_device:chr_file { ioctl open read write };
 allow mediaserver camera_prop:property_service set;
  
 binder_call(mediaserver, audiod)
-# For text relocations in /system/vendor/lib/libmmjpeg.so
-allow mediaserver system_file:file execmod;
