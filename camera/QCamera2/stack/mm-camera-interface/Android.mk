@@ -4,6 +4,10 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+LOCAL_CLANG_CFLAGS += \
+        -Wno-error=memsize-comparison \
+        -Wno-error=missing-field-initializers 
+
 MM_CAM_FILES := \
         src/mm_camera_interface.c \
         src/mm_camera.c \
@@ -52,7 +56,6 @@ LOCAL_CFLAGS += -Wall
 LOCAL_SRC_FILES := $(MM_CAM_FILES)
 
 LOCAL_MODULE           := libmmcamera_interface
-LOCAL_CLANG            := false
 LOCAL_32_BIT_ONLY := true
 LOCAL_PRELINK_MODULE   := false
 LOCAL_SHARED_LIBRARIES := libdl libcutils liblog

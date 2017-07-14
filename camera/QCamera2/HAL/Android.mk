@@ -19,6 +19,12 @@ LOCAL_SRC_FILES := \
 
 LOCAL_CFLAGS = -Wall
 
+LOCAL_CLANG_CFLAGS += \
+    -Wno-error=unused-variable \
+    -Wno-error=sign-compare \
+    -Wno-error=unused-parameter \
+    -Wno-error=unused-private-field 
+    
 #use media extension
 ifeq ($(TARGET_USES_MEDIA_EXTENSIONS), true)
 LOCAL_CFLAGS += -DUSE_MEDIA_EXTENSIONS
@@ -65,7 +71,6 @@ LOCAL_SHARED_LIBRARIES += libmmcamera_interface libmmjpeg_interface
 
 LOCAL_MODULE_RELATIVE_PATH    := hw
 LOCAL_MODULE := camera.$(TARGET_BOARD_PLATFORM)
-LOCAL_CLANG := false
 LOCAL_32_BIT_ONLY := true
 LOCAL_MODULE_TAGS := optional
 
