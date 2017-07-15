@@ -22,17 +22,5 @@
     "target_path": "vendor/oneplus/onyx",
     "branch": "c7.1.2",
     "remote": "github"
-  },
-  {
-    "repository": "CandyRoms/hardware_ril",
-    "target_path": "hardware/ril-caf",
-    "branch": "onyx/c7.1.2-caf",
-    "remote": "github"
-  },
-  {
-    "repository": "CandyRoms/packages_apps_Snap",
-    "target_path": "packages/apps/Snap",
-    "branch": "onyx/c7.1.2",
-    "remote": "github"
   }
 ]
