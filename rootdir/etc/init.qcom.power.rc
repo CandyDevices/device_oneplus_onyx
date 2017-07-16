@@ -76,7 +76,7 @@ on property:sys.boot_completed=1
     write /sys/module/wakeup/parameters/enable_netmgr_wl_ws Y
     # improve color accuracy
     write /sys/devices/platform/kcal_ctrl.0/kcal "245 245 256"
-    write /sys/devices/platform/kcal_ctrl.0/kcal_sat 273
+    write /sys/devices/platform/kcal_ctrl.0/kcal_sat 278
 
 on property:init.svc.recovery=running
     trigger enable-low-power
