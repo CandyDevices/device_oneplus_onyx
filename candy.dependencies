@@ -16,11 +16,5 @@
     "target_path": "vendor/oneplus/onyx",
     "branch": "c7.1.2",
     "remote": "github"
-  },
-  {
-    "repository": "CandyDevices/vendor_oneplus_onyx",
-    "target_path": "vendor/oneplus/onyx",
-    "branch": "c7.1.2",
-    "remote": "github"
   }
 ]

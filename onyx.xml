@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-
-  <!-- Snap -->
-  <remove-project name="CandyRoms/packages_apps_Snap" />
-  <project path="packages/apps/Snap" name="CandyRoms/packages_apps_Snap" remote="candy" revision="onyx/c7.1.2" />
-
-</manifest>
