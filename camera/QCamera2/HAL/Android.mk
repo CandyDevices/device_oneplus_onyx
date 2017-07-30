@@ -17,12 +17,12 @@ LOCAL_SRC_FILES := \
         QCameraThermalAdapter.cpp \
         wrapper/QualcommCamera.cpp
 
-LOCAL_CFLAGS = -Wall -Werror
-LOCAL_CLANG_CFLAGS += \
-    -Wno-error=unused-variable \
-    -Wno-error=sign-compare \
-    -Wno-error=unused-parameter \
-    -Wno-error=unused-private-field
+LOCAL_CFLAGS = -Wall
+
+#use media extension
+ifeq ($(TARGET_USES_MEDIA_EXTENSIONS), true)
+LOCAL_CFLAGS += -DUSE_MEDIA_EXTENSIONS
+endif
 
 # Debug logs are disabled
 LOCAL_CFLAGS += -DDISABLE_DEBUG_LOG
@@ -30,10 +30,6 @@ LOCAL_CFLAGS += -DDISABLE_DEBUG_LOG
 TARGET_USE_VENDOR_CAMERA_EXT := true
 LOCAL_CFLAGS += -DDEFAULT_ZSL_MODE_ON
 LOCAL_CFLAGS += -DDEFAULT_DENOISE_MODE_ON
-
-ifeq ($(TARGET_USES_MEDIA_EXTENSIONS), true)
-LOCAL_CFLAGS += -DUSE_MEDIA_EXTENSIONS
-endif
 
 ifeq ($(TARGET_USE_VENDOR_CAMERA_EXT),true)
 LOCAL_CFLAGS += -DUSE_VENDOR_CAMERA_EXT
@@ -59,7 +55,11 @@ else
 LOCAL_CFLAGS += -DUSE_KK_CODE
 endif
 
+ifeq ($(TARGET_USE_VENDOR_CAMERA_EXT),true)
+LOCAL_C_INCLUDES += $(call project-path-for,qcom-display)/msm8974/libgralloc
+else
 LOCAL_C_INCLUDES += $(call project-path-for,qcom-display)/libgralloc
+endif
 LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
 LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include/media
 LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
@@ -68,8 +68,8 @@ LOCAL_SHARED_LIBRARIES := libcamera_client liblog libhardware libutils libcutils
 LOCAL_SHARED_LIBRARIES += libmmcamera_interface libmmjpeg_interface
 
 LOCAL_MODULE_RELATIVE_PATH    := hw
-
 LOCAL_MODULE := camera.$(TARGET_BOARD_PLATFORM)
+LOCAL_CLANG := false
 LOCAL_32_BIT_ONLY := true
 LOCAL_MODULE_TAGS := optional
 

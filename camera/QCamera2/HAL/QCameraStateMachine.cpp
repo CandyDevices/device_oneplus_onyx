@@ -1242,9 +1242,6 @@ int32_t QCameraStateMachine::procEvtPreviewingState(qcamera_sm_evt_enum_t evt,
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
                 break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
-                break;
             default:
                 ALOGE("%s: Invalid internal event %d in state(%d)",
                             __func__, internal_evt->evt_type, m_state);
@@ -1385,9 +1382,7 @@ int32_t QCameraStateMachine::procEvtPrepareSnapshotState(qcamera_sm_evt_enum_t e
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
                 break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
-                break;
+
             default:
                 ALOGE("%s: Invalid internal event %d in state(%d)",
                             __func__, internal_evt->evt_type, m_state);
@@ -1704,9 +1699,6 @@ int32_t QCameraStateMachine::procEvtPicTakingState(qcamera_sm_evt_enum_t evt,
                 break;
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
-                break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
                 break;
             default:
                 break;
@@ -2098,9 +2090,6 @@ int32_t QCameraStateMachine::procEvtRecordingState(qcamera_sm_evt_enum_t evt,
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
                 break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
-                break;
             default:
                 break;
             }
@@ -2438,9 +2427,6 @@ int32_t QCameraStateMachine::procEvtVideoPicTakingState(qcamera_sm_evt_enum_t ev
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
                 break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
-                break;
             default:
                 break;
             }
@@ -2711,14 +2697,13 @@ int32_t QCameraStateMachine::procEvtPreviewPicTakingState(qcamera_sm_evt_enum_t 
         break;
     case QCAMERA_SM_EVT_STOP_PREVIEW:
         {
-            if (m_parent->isZSLMode() && !m_parent->isLongshotEnabled()) {
+            if (m_parent->isZSLMode()) {
                 // cancel picture first
                 rc = m_parent->cancelPicture();
                 m_parent->stopChannel(QCAMERA_CH_TYPE_ZSL);
             } else if (m_parent->isLongshotEnabled()) {
                 // just cancel picture
                 rc = m_parent->cancelPicture();
-                m_parent->setLongshotEnable(false);
             } else {
                 rc = m_parent->cancelLiveSnapshot();
                 m_parent->stopChannel(QCAMERA_CH_TYPE_PREVIEW);
@@ -2823,9 +2808,6 @@ int32_t QCameraStateMachine::procEvtPreviewPicTakingState(qcamera_sm_evt_enum_t 
                 break;
             case QCAMERA_INTERNAL_EVT_AWB_UPDATE:
                 rc = m_parent->processAWBUpdate(internal_evt->awb_data);
-                break;
-            case QCAMERA_INTERNAL_EVT_ZSL_CAPTURE_DONE:
-                rc = m_parent->processZSLCaptureDone();
                 break;
             default:
                 break;

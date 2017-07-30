@@ -301,8 +301,6 @@ typedef struct{
 
     /* Sensor type information */
     cam_sensor_type_t sensor_type;
-    char sensor_name[128];
-    uint8_t flash_dev_name[QCAMERA_MAX_FILEPATH_LENGTH];
 } cam_capability_t;
 
 typedef enum {
@@ -544,7 +542,6 @@ typedef union {
     INCLUDE(CAM_INTF_PARM_ISP_DEBUG_MASK,           uint32_t,                    1);
     INCLUDE(CAM_INTF_PARM_FOCUS_BRACKETING,         cam_af_bracketing_t,         1);
     INCLUDE(CAM_INTF_PARM_FLASH_BRACKETING,         cam_flash_bracketing_t,      1);
-    INCLUDE(CAM_INTF_PARM_G_SENSOR_DATA,            cam_set_gsensor_t,           1);
 } parm_type_t;
 
 typedef union {

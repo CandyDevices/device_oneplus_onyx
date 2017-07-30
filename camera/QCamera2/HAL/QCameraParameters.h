@@ -87,9 +87,10 @@ private:
     int32_t setSensorSupportedPicSize();
     uint8_t checkScaleSizeTable(uint8_t scale_cnt, cam_dimension_t *scale_tbl, uint8_t org_cnt, cam_dimension_t *org_tbl);
 
-    QCameraParameters (__unused *mParent);
+    QCameraParameters *mParent;
     bool mScaleEnabled;
     bool mIsUnderScaling;   //if in scale status
+    bool mScaleDirection;   // 0: Upscaling; 1: Downscaling
 
     // picture size cnt that need scale operation
     uint8_t mNeedScaleCnt;
@@ -431,10 +432,6 @@ public:
     static const char FOCUS_ALGO_SPOT_METERING[];
     static const char FOCUS_ALGO_CENTER_WEIGHTED[];
     static const char FOCUS_ALGO_FRAME_AVERAGE[];
-
-    // Values for manual stuffs.
-    static const char FOCUS_MODE_MANUAL_POSITION[];
-    static const char WHITE_BALANCE_MANUAL_CCT[];
 
     // Values for AE Bracketing settings.
     static const char AE_BRACKET_OFF[];

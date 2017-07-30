@@ -1957,13 +1957,6 @@ int32_t mm_channel_handle_metadata(
             goto end;
         }
 
-        if (metadata->is_meta_invalid) {
-            CDBG_HIGH("meta invalid: Skipping meta frame_id = %d \n",
-                    metadata->meta_invalid_params.meta_frame_id);
-            rc = -1;
-            goto end;
-        }
-
         if (stream_obj->ch_obj == ch_obj) {
             for (i=0; i<ARRAY_SIZE(ch_obj->streams); i++) {
                 if (CAM_STREAM_TYPE_SNAPSHOT ==
@@ -1987,8 +1980,6 @@ int32_t mm_channel_handle_metadata(
 
             if (metadata->is_prep_snapshot_done_valid &&
                     metadata->is_good_frame_idx_range_valid) {
-                /* Keep min_frame_idx anyway, otherwise expected_frame_id will never be 
-                right set. bug OR-4283. tanrifei, 20150923 */
                 CDBG_ERROR("%s: prep_snapshot_done and good_idx_range shouldn't be valid"
                         "at the same time", __func__);
                 rc = -1;

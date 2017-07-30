@@ -149,7 +149,6 @@ bool QCamera2Factory::can_talk_to_sensormanager()
     return sensorManager.getSensorList(&sensorList) >= 0;
 }
 
-
 /*===========================================================================
  * FUNCTION   : cameraDeviceOpen
  *
@@ -181,15 +180,13 @@ int QCamera2Factory::cameraDeviceOpen(int camera_id,
         ALOGE("Waiting for sensor service failed.");
         return android::NO_INIT;
     }
-            
+
     QCamera2HardwareInterface *hw = new QCamera2HardwareInterface(camera_id);
     if (!hw) {
         ALOGE("Allocation of hardware interface failed");
         return NO_MEMORY;
     }
-
     rc = hw->openCamera(hw_device);
-
     if (rc != NO_ERROR) {
         delete hw;
     }
@@ -226,7 +223,7 @@ int QCamera2Factory::camera_device_open(
 }
 
 struct hw_module_methods_t QCamera2Factory::mModuleMethods = {
-    .open = QCamera2Factory::camera_device_open,
+    open: QCamera2Factory::camera_device_open,
 };
 
 }; // namespace qcamera
