@@ -14,7 +14,7 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <!-- Gesture shortcuts -->
-    <string name="screen_gestures_panel_title">Doze Pulse</string>
+    <string name="screen_gestures_panel_title">Doze pulse</string>
     <string name="screen_gestures_panel_dashboard_summary">Manage ambient display notifications</string>
 
     <string name="ambient_display_title">Ambient display</string>
